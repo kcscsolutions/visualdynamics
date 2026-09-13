@@ -1,0 +1,280 @@
+name: release
+
+# **Tags and the button, never a push.** A build is 55 minutes of quota
+# on Linux and Windows and 200 more if macOS runs here, against 2 000 a
+# month — see packaging/README.md for the arithmetic. Nightly builds of
+# a project with one author would spend the year's allowance on
+# artefacts nobody downloads.
+#
+# The macos job is `if: inputs.macos` and defaults to **off**, because
+# GitHub bills macOS minutes at 10x and the maintainer's own Mac builds
+# the same artefact in two minutes for nothing. Turn it on for a release
+# where that machine is not to hand.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      macos:
+        description: 'Also build macOS here (10x minutes — usually build it locally)'
+        type: boolean
+        default: false
+      reserve:
+        description: 'Only reserve the name on PyPI with an empty placeholder (no builds)'
+        type: boolean
+        default: false
+  # The site follows the release, not the push (Brandon, 2026-09-01):
+  # when the draft release is *published*, the `site` job below builds
+  # the documentation, writes the update manifest from the release
+  # itself, and deploys the whole site. What a reader sees then matches
+  # what they can install, and the manifest can never name assets that
+  # do not exist yet — the release is already public when it is written.
+  release:
+    types: [published]
+
+permissions:
+  contents: write        # to create the release and attach the builds
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false      # never abandon a half-published release
+
+jobs:
+  linux:
+    if: github.event_name != 'release' && !inputs.reserve
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13', cache: pip}
+      # The same list packaging/build_linux.sh reads, so a runner and a
+      # container install the same thing. A hand-copied list here is
+      # what made the first two attempts fail on binutils and libkrb5-3.
+      - name: Install what a Linux build needs
+        run: |
+          sudo apt-get update -qq
+          grep -vE '^\s*(#|$)' packaging/linux/apt-packages.txt | tr '\n' '\0' |
+            xargs -0 sudo apt-get satisfy -y -qq --no-install-recommends
+      # [step]: the CAD kernel ships in every packaged build (the spec
+      # collects OCP only if it is installed — without the extra the
+      # runner's package silently lacked STEP/IGES import, 2026-09-03)
+      - run: pip install -e '.[step]' pyinstaller pillow
+      - name: Build
+        env:
+          # appimagetool is itself an AppImage and needs FUSE, which a
+          # runner has not got
+          APPIMAGE_EXTRACT_AND_RUN: '1'
+        run: |
+          wget -q https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
+          packaging/build_linux.sh
+      - uses: actions/upload-artifact@v4
+        with: {name: linux, path: dist/*.AppImage, retention-days: 1}
+
+  windows:
+    if: github.event_name != 'release' && !inputs.reserve
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13', cache: pip}
+      # [step]: the CAD kernel ships in every packaged build (the spec
+      # collects OCP only if it is installed — without the extra the
+      # runner's package silently lacked STEP/IGES import, 2026-09-03)
+      - run: pip install -e '.[step]' pyinstaller pillow
+      - run: powershell -ExecutionPolicy Bypass -File packaging\build_windows.ps1
+      # Run what was just built, on the real Windows this runner is:
+      # install silently, open a project in the installed application,
+      # require a titled window, photograph the screen. The runner has
+      # an interactive desktop, so the screenshots show the actual
+      # application — the closest thing to a Windows machine the
+      # maintainer has.
+      - name: Smoke-test the installed application
+        run: powershell -ExecutionPolicy Bypass -File packaging\smoke_windows.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: windows-smoke, path: dist/smoke/*, retention-days: 7}
+      - uses: actions/upload-artifact@v4
+        with: {name: windows, path: dist/*setup.exe, retention-days: 1}
+
+  macos:
+    if: inputs.macos
+    runs-on: macos-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13', cache: pip}
+      # [step]: the CAD kernel ships in every packaged build (the spec
+      # collects OCP only if it is installed — without the extra the
+      # runner's package silently lacked STEP/IGES import, 2026-09-03)
+      - run: pip install -e '.[step]' pyinstaller pillow
+      - run: packaging/build_macos.sh
+      - uses: actions/upload-artifact@v4
+        with: {name: macos, path: dist/*.dmg, retention-days: 1}
+
+  publish:
+    # macos included, and it was not: the job built a .dmg, uploaded
+    # it, and `publish` never waited for it — so a tagged release
+    # would have gone out with the Linux and Windows builds and
+    # whatever the macOS job had managed to upload by then, which is a
+    # race rather than a guarantee. Found while writing the website's
+    # download section, where the empty macOS button would have been
+    # the first anyone knew (2026-08-25).
+    #
+    # The macos job is off by default (the Mac on the desk builds and
+    # notarises both images), so on a tag it is *skipped* — and GitHub
+    # skips a job whose `needs` include a skipped job unless its `if`
+    # says otherwise. As first written, the tag path never published
+    # (2026-09-03). `!cancelled()` keeps the job eligible; the result
+    # checks require the two always-run builds and accept the macOS
+    # one as either built or skipped, never failed.
+    needs: [linux, windows, macos]
+    if: >-
+      !cancelled()
+      && startsWith(github.ref, 'refs/tags/v')
+      && needs.linux.result == 'success'
+      && needs.windows.result == 'success'
+      && needs.macos.result != 'failure'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with: {path: builds, merge-multiple: true}
+      # SHA256SUMS beside the builds, in sha256sum's own format so
+      # `shasum -a 256 -c SHA256SUMS` verifies a download — the
+      # downloads page promises "notes and checksums" (2026-09-11).
+      # The two macOS images are attached by hand afterwards, and
+      # packaging/attach_macos.sh adds their lines to this file.
+      - name: Checksums
+        run: cd builds && sha256sum * > SHA256SUMS && cat SHA256SUMS
+      # Release assets, **not** Actions artifacts: artifacts count
+      # against a 500 MB storage quota that three ~1 GB builds would
+      # exhaust on the first release. Release assets are a separate,
+      # effectively unlimited store — which is why the jobs above keep
+      # theirs for a single day, just long enough to be collected here.
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: builds/*
+          draft: true          # look at it before the world does
+          generate_release_notes: true
+
+  # Everything visualdynamics.org serves, from one directory: the launch
+  # pages, the documentation properdocs builds into web/launch/documentation/,
+  # and latest.json for File -> Check for Updates. Runs only on the
+  # release-published event, so it never sees a tag whose release is
+  # still a draft. Needs two repository secrets, both from the
+  # Cloudflare dashboard: CLOUDFLARE_API_TOKEN (a token with Cloudflare
+  # Pages: Edit on this account, nothing more) and CLOUDFLARE_ACCOUNT_ID.
+  # web/README.md walks through making them.
+  site:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13', cache: pip}
+      - run: pip install -e '.[docs]'
+      - name: Build the documentation into the site
+        env:
+          DISABLE_MKDOCS_2_WARNING: 'true'
+        run: properdocs build --strict
+      - name: Write the update manifest from the release
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          URL: ${{ github.event.release.html_url }}
+          NAME: ${{ github.event.release.name }}
+        run: |
+          python - <<'EOF'
+          import json, os
+          version = os.environ['TAG'].removeprefix('v')
+          json.dump({'version': version, 'url': os.environ['URL'],
+                     'notes': os.environ['NAME'] or f'Visual Dynamics {version}'},
+                    open('web/launch/latest.json', 'w'), indent=2)
+          print(open('web/launch/latest.json').read())
+          EOF
+      - name: Deploy the site
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler pages deploy web/launch --project-name=visualdynamics --branch=main
+
+  # PyPI, by trusted publishing: no token anywhere — PyPI accepts this
+  # workflow's own identity, registered once in the account as a
+  # pending publisher (packaging/README.md, "PyPI"). Two jobs, one
+  # name:
+  #
+  # `reserve` holds the name before the first release with an empty
+  # placeholder (version 0.0.0, a README, no code): the name was free
+  # in August 2026 and stays free only until somebody takes it. Run
+  # by hand, once. Nothing of the software leaves the repository.
+  #
+  # `pypi` publishes the real distribution when the release is
+  # *published* — the same moment the site deploys — built from this
+  # checkout, which is the public tree and nothing else.
+  reserve:
+    if: github.event_name == 'workflow_dispatch' && inputs.reserve
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13'}
+      - name: Build the placeholder
+        run: |
+          mkdir -p placeholder/visualdynamics
+          cat > placeholder/pyproject.toml <<'EOF'
+          [build-system]
+          requires = ["setuptools>=75"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "visualdynamics"
+          version = "0.0.0"
+          description = "Visual Dynamics, a units-aware structural dynamics toolset. A placeholder holding the name; the first release is on its way."
+          readme = "README.md"
+          requires-python = ">=3.12"
+          authors = [{ name = "Brandon Zwink" }]
+          classifiers = ["Development Status :: 1 - Planning"]
+
+          [project.urls]
+          Homepage = "https://visualdynamics.org"
+
+          [tool.setuptools]
+          packages = ["visualdynamics"]
+          EOF
+          cat > placeholder/README.md <<'EOF'
+          # Visual Dynamics
+
+          A units-aware structural dynamics toolset: geometry, test data,
+          mode shapes and reports, from a desktop application or from
+          Python. This version is a placeholder that holds the name on
+          PyPI; the first release is on its way at https://visualdynamics.org.
+          EOF
+          echo '# Visual Dynamics: a placeholder holding the name; the first release is on its way.' > placeholder/visualdynamics/__init__.py
+          pip install -q build
+          cd placeholder && python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: placeholder/dist
+
+  pypi:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.13'}
+      - run: pip install -q build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1

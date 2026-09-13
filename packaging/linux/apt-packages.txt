@@ -1,0 +1,63 @@
+# Debian/Ubuntu packages a Linux build needs. One list, read by
+# packaging/build_linux.sh and by the release workflow, so the two
+# cannot drift — the first tagged build failed twice on things missing
+# from a hand-copied list.
+#
+# Lines beginning with # are comments; everything else is a package.
+
+# PyInstaller shells out to objdump to walk the shared libraries
+binutils
+
+# what Qt and VTK link against
+libegl1
+libgl1
+libopengl0
+libglx-mesa0
+libxkbcommon-x11-0
+libdbus-1-3
+libxcb-cursor0
+libxcb-icccm4
+libxcb-image0
+libxcb-keysyms1
+libxcb-randr0
+libxcb-render-util0
+libxcb-shape0
+libxcb-xfixes0
+libxcb-xinerama0
+libxdamage1
+libxrandr2
+libxext6
+libxfixes3
+libxcomposite1
+libxkbfile1
+libxtst6
+# Ubuntu 24.04 renamed this libasound2t64 (the time_t transition) and
+# the old name has no candidate there; Debian bookworm, where the
+# AppImage is built, still has the old one. Either satisfies — which
+# is why every consumer installs this list with `apt-get satisfy`,
+# one line per dependency string, rather than `install` (the release
+# workflow found the rename, 2026-09-01).
+libasound2t64 | libasound2
+libfontconfig1
+
+# QtNetwork probes GSSAPI during PyInstaller's Qt hook, and without this
+# the *build* fails — not the application — with
+# "ImportError: libgssapi_krb5.so.2: cannot open shared object file"
+libkrb5-3
+
+# QtWebEngine is Chromium, and Chromium wants a desktop underneath it
+libnss3
+libatk1.0-0
+libatk-bridge2.0-0
+libatspi2.0-0
+libcups2
+libdrm2
+libgbm1
+libpango-1.0-0
+libcairo2
+
+# building the AppImage itself
+wget
+file
+desktop-file-utils
+zsync

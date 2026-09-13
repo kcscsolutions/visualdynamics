@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workflows — Visual Dynamics</title>
+<meta name="description" content="The five test workflows Visual Dynamics implements end to end, and the formats they arrive in.">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="Workflows — Visual Dynamics">
+<meta property="og:description" content="The five test workflows Visual Dynamics implements end to end, and the formats they arrive in.">
+<meta property="og:image" content="mark.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="top">
+  <a class="home" href="index.html"><img src="favicon.png" alt="">Visual Dynamics</a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="workflows.html" aria-current="page">Workflows</a>
+    <a href="examples.html">Examples</a>
+    <a href="documentation/">Documentation</a>
+    <a href="downloads.html">Downloads</a>
+    <a href="requests.html">Requests</a>
+    <a href="about.html">About</a>
+  </nav>
+</div>
+<main>
+  <header><h1>Workflows</h1>
+    <p class="tagline">Seven, implemented end to end.</p></header>
+
+  <p class="lede">
+    A project is of a kind, and its kind is what the application knows.
+    Each workflow below carries the shape of its own test: what a
+    project of that kind expects you to bring, which figures its report
+    is built from, and how the result is judged.
+  </p>
+
+  <h2>Modal analysis</h2>
+  <p>
+    Measure frequency response functions from a hammer or shaker
+    survey, fit modes to them, and animate the shapes on the test
+    geometry. Coherence and drive-point checks come with it, so a
+    doubtful channel is visible before it reaches a fit.
+  </p>
+
+  <h2>Finite element model correlation</h2>
+  <p>
+    Pair the test modes against a model's, by modal assurance
+    criterion, and show where the two disagree — which pairs, by how
+    much in frequency, and where on the structure the shapes part
+    company.
+  </p>
+
+  <h2>Random vibration test analysis</h2>
+  <p>
+    Averaged spectra against a specification, with the bands, the
+    tolerance lines and the exceedances marked — and the averaging
+    itself shown rather than assumed, so the number of averages and
+    the window are part of what the report says.
+  </p>
+
+  <h2>Shock test analysis</h2>
+  <p>
+    Find the events in a record, filter and integrate it into velocity
+    and displacement, compute shock response spectra on log axes, and
+    judge them against the required band.
+  </p>
+
+  <h2>Transient environment analysis</h2>
+  <p>
+    A measured waveform against the one it was controlled to, aligned
+    and compared over the interval that matters rather than over
+    whatever the file happens to contain.
+  </p>
+
+  <h2>Sine sweep test analysis</h2>
+  <p>
+    One or more tones swept across a frequency range at a controlled
+    amplitude, so the article sees each frequency in turn. The level
+    each tone actually reached is extracted from the recording and
+    judged against the level it was required to reach, tone by tone
+    and channel by channel, with the difference in decibels.
+  </p>
+
+  <h2>System identification</h2>
+  <p>
+    The plant a later test will be controlled through: the frequency
+    response of every control channel to every drive, measured from an
+    ambient recording and a driven one. The report carries the plant
+    and the three readings that say whether to believe it — the
+    coherence map, the signal-to-noise against the ambient floor, and
+    the complex mode indicator that reads the whole matrix at a glance.
+  </p>
+
+  <h2 id="formats">Supported data formats</h2>
+  <p>
+    Each one reads into the same objects, so what happens next does
+    not depend on where the data came from. Most of them are written
+    as well as read — where a format is read-only the table says so,
+    rather than leaving you to find out at the export dialog.
+  </p>
+  <!-- The authority for this table is the registry in
+       src/visualdynamics/io/__init__.py, and
+       tests/test_website.py::test_the_website_lists_the_formats_that_exist
+       fails if the two ever part company. Edit the code first. -->
+  <div class="scrolls">
+  <table class="formats">
+    <thead>
+      <tr><th>Format</th><th>Extensions</th><th>Read</th><th>Write</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Universal file, text and binary</td><td>.unv, .uff</td><td>yes</td><td>.unv</td></tr>
+      <tr><td>I-DEAS associated data</td><td>.afu, .ati, .ash</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Nastran bulk data</td><td>.bdf, .dat, .nas</td><td>yes</td><td>.bdf</td></tr>
+      <tr><td>Nastran punch eigenvectors</td><td>.pch</td><td>yes</td><td>not yet</td></tr>
+      <tr><td>Femap neutral file</td><td>.neu</td><td>yes</td><td>not yet</td></tr>
+      <tr><td>Exodus finite element file</td><td>.exo, .e</td><td>yes</td><td>.exo</td></tr>
+      <tr><td>Rattlesnake controller output</td><td>.nc4</td><td>yes</td><td>no</td></tr>
+      <tr><td>Channel table spreadsheet</td><td>.xlsx</td><td>yes</td><td>yes</td></tr>
+      <tr><td>CAD mesh, parts as blocks</td><td>.3mf</td><td>yes</td><td>yes</td></tr>
+      <tr><td>CAD triangle mesh</td><td>.stl</td><td>yes</td><td>yes</td></tr>
+      <tr><td>STEP / IGES CAD, tessellated on import</td><td>.step .stp .iges .igs</td><td>yes</td><td>no</td></tr>
+      <tr><td>sdynpy geometry, data and shapes</td><td>.npz, .npy</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Photographs</td><td>.png, .jpg, .heic</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Visual Dynamics project</td><td>.vdyn</td><td>yes</td><td>yes</td></tr>
+      <tr><td>Report template — a report on its own, to load into another project</td><td>.vdreport</td><td>yes</td><td>yes</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">
+    A universal file comes in two encodings — dataset 58 as text and
+    dataset 58b as raw floats — and both are read and written. The
+    binary one is about a third the size and exact, where five decimal
+    places of text are not.
+  </p>
+  <p class="note">
+    The three that do not write back: a Rattlesnake <code>.nc4</code>
+    is a controller's own record of a run and writing one would be
+    claiming to have run it, so that one stays read-only on purpose.
+    The punch and Femap writers are simply not written yet — anything
+    read here is meant to be writable, and those two are the outstanding
+    exceptions.
+  </p>
+
+  <ul class="links">
+    <li><a href="examples.html">See the figures</a></li>
+    <li><a href="downloads.html">Download</a></li>
+    <li><a href="https://github.com/visualdynamics/visualdynamics">Source on GitHub</a></li>
+  </ul>
+</main>
+<footer>
+  <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a><br>
+  &copy; 2026 Brandon Zwink.
+</footer>
+</body>
+</html>

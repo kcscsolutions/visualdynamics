@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Download Visual Dynamics</title>
+<meta name="description" content="Compiled packages for macOS, Windows and Linux, a pip install, or the repository itself.">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="Download Visual Dynamics">
+<meta property="og:description" content="Compiled packages for macOS, Windows and Linux, a pip install, or the repository itself.">
+<meta property="og:image" content="mark.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="top">
+  <a class="home" href="index.html"><img src="favicon.png" alt="">Visual Dynamics</a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="examples.html">Examples</a>
+    <a href="documentation/">Documentation</a>
+    <a href="downloads.html" aria-current="page">Downloads</a>
+    <a href="requests.html">Requests</a>
+    <a href="about.html">About</a>
+  </nav>
+</div>
+<main>
+  <header><h1>Download</h1>
+    <p class="tagline">A compiled package for your platform, a
+      Python install, or the repository itself.</p></header>
+
+  <p class="note">
+    <strong>This is an alpha release.</strong> It has been checked
+    against known cases, not yet against a broad set of tests; numbers
+    it produces are to be verified by independent means before anything
+    depends on them. The application says so when it opens, and asks
+    for that to be acknowledged every time. The project file,
+    <code>.vdyn</code>, is provisional: the next alpha will save projects
+    in the Engineering Sciences Common Data Format (<code>.escdf</code>),
+    a public standard, and will still open <code>.vdyn</code> files; the
+    first release that is not an alpha will not. Open each
+    <code>.vdyn</code> once in that alpha and save it again.
+  </p>
+
+  <h2>Compiled packages</h2>
+  <p>
+    Nothing to set up — download, open, and the application is on your
+    desktop. This is the one to take unless you already work in Python.
+  </p>
+  <div class="downloads">
+    <a class="dl" id="dl-macos-arm" href="https://github.com/visualdynamics/visualdynamics/releases/latest">
+      <img class="app" src="apple-touch-icon.png" alt="" width="180" height="180">
+      <span class="text">
+        <span class="os">macOS</span>
+        <span class="file">Apple silicon · .dmg</span>
+      </span>
+    </a>
+    <a class="dl" id="dl-macos-intel" href="https://github.com/visualdynamics/visualdynamics/releases/latest">
+      <img class="app" src="apple-touch-icon.png" alt="" width="180" height="180">
+      <span class="text">
+        <span class="os">macOS</span>
+        <span class="file">Intel · .dmg</span>
+      </span>
+    </a>
+    <a class="dl" id="dl-windows" href="https://github.com/visualdynamics/visualdynamics/releases/latest">
+      <img class="app" src="apple-touch-icon.png" alt="" width="180" height="180">
+      <span class="text">
+        <span class="os">Windows</span>
+        <span class="file">64-bit installer · .exe</span>
+      </span>
+    </a>
+    <a class="dl" id="dl-linux" href="https://github.com/visualdynamics/visualdynamics/releases/latest">
+      <img class="app" src="apple-touch-icon.png" alt="" width="180" height="180">
+      <span class="text">
+        <span class="os">Linux</span>
+        <span class="file">Portable x86_64 · .AppImage</span>
+      </span>
+    </a>
+  </div>
+  <p class="note" id="dl-note">
+    Every release is also on the <a href="https://github.com/visualdynamics/visualdynamics/releases">releases
+    page</a>, with notes and checksums — <code>SHA256SUMS</code>
+    beside the files, which <code>shasum -a 256 -c SHA256SUMS</code>
+    verifies.
+  </p>
+
+  <h2 id="python">Python installation</h2>
+  <p>
+    The desktop application and the scripting API are one package, so
+    installing it gets you both — the analysis you can drive from a
+    notebook, and the same window the installers above put on your
+    desktop.
+  </p>
+  <pre class="command">pip install visualdynamics</pre>
+  <p class="note">
+    Python 3.12 or newer. <code>python -m visualdynamics</code> opens
+    the application; <code>import visualdynamics</code> is the API the
+    <a href="documentation/">documentation</a>
+    describes.
+  </p>
+
+  <h2 id="contributor">Contributor installation</h2>
+  <p>
+    To work <em>on</em> it — fix something, try a branch, run the test
+    suite — take the repository and install it in place, so your edits
+    are live without reinstalling:
+  </p>
+  <pre class="command">git clone git@github.com:visualdynamics/visualdynamics.git
+cd visualdynamics
+pip install -e .</pre>
+  <p>
+    That is the SSH remote, which uses the key you already push with.
+    Over HTTPS,
+    <code>https://github.com/visualdynamics/visualdynamics.git</code>
+    clones the same thing.
+  </p>
+  <p>
+    To run what is on <code>main</code> without cloning it — a fix you
+    have been waiting on, say — pip installs from the repository
+    directly, and takes <code>@</code> a branch, tag or commit to pin
+    one:
+  </p>
+  <pre class="command">pip install git+ssh://git@github.com/visualdynamics/visualdynamics.git</pre>
+  <p class="note">
+    There is nothing to compile; git and a Python 3.12 toolchain are
+    the whole of it. Bug reports are very welcome and I try to fix them
+    promptly — for anything larger,
+    <a href="mailto:contact@visualdynamics.org">write first</a>.
+  </p>
+
+  <h2>What you need</h2>
+  <ul>
+    <li><strong>macOS</strong> 13 or newer, Apple silicon or Intel — each has its own build above. Unsure which chip? Apple menu → About This Mac.</li>
+    <li><strong>Windows</strong> 10 or 11, 64-bit.</li>
+    <li><strong>Linux</strong> with a desktop; the AppImage needs no
+      install — mark it executable and run it.</li>
+  </ul>
+  <p class="note">
+    The 3-D views want a working OpenGL stack, which any ordinary
+    desktop has. Nothing here phones home on its own or needs an account — <em>File → Check for Updates…</em> asks visualdynamics.org only when you ask it to.
+  </p>
+</main>
+<script>
+/* Two optional enhancements — every button already points somewhere
+   useful without them. Mark the visitor's platform without hiding the
+   others, and upgrade each button from the releases page to the actual
+   asset by asking the API what the latest release carries. Filenames
+   carry a version, so hard-coding them would go stale each release.
+
+   Previewed locally, the same routine fills the slots from
+   downloads/manifest.json instead — packaging/stage_downloads.py
+   writes it beside hardlinks of whatever installers dist/ holds, in
+   the releases API's own shape, so the preview hands out the builds
+   this machine just made. Only ever consulted on localhost; the
+   deployed page never makes the request. */
+(function () {
+  var ua = navigator.userAgent;
+  /* The user agent will not say which silicon a Mac runs — it
+     reports "Intel" on both, by design. Two side channels usually
+     can: Chromium's client hints name the CPU architecture outright,
+     and the WebGL renderer names the GPU ("Apple M…" is Apple
+     silicon; Intel/AMD/NVIDIA parts are Intel Macs). Safari may mask
+     the GPU as plain "Apple GPU" on either — then neither Mac slot
+     is marked, and the requirements line points at About This Mac. */
+  function macSlots () {
+    try {
+      var c = document.createElement('canvas');
+      var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+      if (gl) {
+        var ext = gl.getExtension('WEBGL_debug_renderer_info');
+        var r = String(ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)
+                           : gl.getParameter(gl.RENDERER));
+        if (/Apple M\d/i.test(r)) return ['macos-arm'];
+        if (/Intel|AMD|Radeon|NVIDIA|GeForce/i.test(r))
+          return ['macos-intel'];
+      }
+    } catch (e) {}
+    /* Safari can mask the GPU as plain "Apple GPU" on either chip:
+       then neither is marked — two marks read as a bug, and the
+       requirements line says where About This Mac gives the answer */
+    return [];
+  }
+  function mark (slots) {
+    slots.forEach(function (os) {
+      var e = document.getElementById('dl-' + os);
+      if (e) e.setAttribute('data-yours', '1');
+    });
+  }
+  if (/Mac|iP(hone|ad)/.test(ua)) {
+    if (navigator.userAgentData
+        && navigator.userAgentData.getHighEntropyValues) {
+      navigator.userAgentData.getHighEntropyValues(['architecture'])
+        .then(function (h) {
+          mark(h.architecture === 'arm' ? ['macos-arm']
+             : h.architecture === 'x86' ? ['macos-intel'] : macSlots());
+        })
+        .catch(function () { mark(macSlots()); });
+    } else { mark(macSlots()); }
+  } else {
+    mark(/Win/.test(ua) ? ['windows']
+       : /Linux|X11|Android/.test(ua) ? ['linux'] : []);
+  }
+  var match = { 'macos-arm': /-arm64\.dmg$/i,
+                'macos-intel': /-x86_64\.dmg$/i,
+                windows: /setup\.exe$/i,
+                linux: /\.AppImage$/i };
+  function fill (rel, label) {
+    if (!rel || !rel.assets) return;
+    Object.keys(match).forEach(function (os) {
+      var a = rel.assets.filter(function (x) { return match[os].test(x.name); })[0];
+      var el = document.getElementById('dl-' + os);
+      if (!a || !el) return;
+      el.href = a.browser_download_url;
+      var f = el.querySelector('.file');
+      if (f) f.textContent += ' · ' + (a.size / 1048576).toFixed(0) + ' MB';
+    });
+    var n = document.getElementById('dl-note');
+    if (n && label) n.insertAdjacentHTML('afterbegin', label);
+  }
+  var here = location.hostname;
+  var local = here === 'localhost' || here === '127.0.0.1';
+  (local ? fetch('downloads/manifest.json')
+             .then(function (r) { return r.ok ? r.json() : null; })
+             .catch(function () { return null; })
+         : Promise.resolve(null))
+    .then(function (staged) {
+      if (staged && staged.assets && staged.assets.length) {
+        fill(staged, 'Builds staged on this machine. ');
+        return;
+      }
+      fetch('https://api.github.com/repos/visualdynamics/visualdynamics/releases/latest',
+            { headers: { Accept: 'application/vnd.github+json' } })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rel) {
+          fill(rel, rel && rel.tag_name
+            ? 'Latest release <strong>' + rel.tag_name + '</strong>. ' : '');
+        })
+        .catch(function () {});
+    });
+})();
+</script>
+<footer>
+  <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a><br>
+  &copy; 2026 Brandon Zwink.
+</footer>
+</body>
+</html>

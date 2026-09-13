@@ -1,0 +1,6 @@
+- [The modal workflow](modal-workflow.md)
+- [The transient workflow](transient-workflow.md)
+- [The shock workflow](shock-workflow.md)
+- [The random vibration workflow](random-workflow.md)
+- [The sine sweep workflow](sine-workflow.md)
+- [The system identification workflow](sysid-workflow.md)

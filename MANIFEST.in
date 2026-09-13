@@ -1,0 +1,8 @@
+# The tests read fixtures from testdata/, which is 110 MB and is not
+# shipped — so shipping the tests without them would hand anyone who
+# unpacked an sdist a suite that cannot pass. They live in the repository,
+# where the fixtures are.
+prune tests
+prune examples
+prune tools
+exclude MANIFEST.in

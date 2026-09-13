@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Examples — Visual Dynamics</title>
+<meta name="description" content="Interactive finite element modes, frequency response functions and time data, drawn by the report renderer.">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="Examples — Visual Dynamics">
+<meta property="og:description" content="Interactive finite element modes, frequency response functions and time data, drawn by the report renderer.">
+<meta property="og:image" content="mark.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="top">
+  <a class="home" href="index.html"><img src="favicon.png" alt="">Visual Dynamics</a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="examples.html" aria-current="page">Examples</a>
+    <a href="documentation/">Documentation</a>
+    <a href="downloads.html">Downloads</a>
+    <a href="requests.html">Requests</a>
+    <a href="about.html">About</a>
+  </nav>
+</div>
+<main>
+  <header><h1>Examples</h1>
+    <p class="tagline">Turn them, play them, zoom into them.</p></header>
+
+  <p class="lede">
+    These are not pictures of the software. Each one is the figure
+    itself — the same payload, drawn by the same renderer, that a
+    report exported from Visual Dynamics carries. Drag to rotate,
+    scroll to zoom.
+  </p>
+  <p>
+    The subject throughout is one job: a modal survey of a rectangular
+    plate — the record as it was measured, the plant computed from it,
+    and the finite element model it was run against.
+  </p>
+
+  <h2>The measured record</h2>
+  <div class="figure">
+    <iframe src="examples/time.html" loading="lazy" scrolling="no"
+            title="Measured time data on a three-dimensional stage"></iframe>
+  </div>
+  <p class="caption">
+    Time data from the survey, one channel per station receding into
+    the stage — six of the two hundred and twenty accelerometer
+    records, drag to turn it.
+  </p>
+
+  <h2>The measured plant</h2>
+  <div class="figure">
+    <iframe src="examples/frfs.html" loading="lazy" scrolling="no"
+            title="Frequency response functions on a three-dimensional stage"></iframe>
+  </div>
+  <p class="caption">
+    The frequency response functions computed from those records, ten
+    of twenty-two. Overlaid on a single axis they would be a band;
+    given depth, each channel keeps its own resonances.
+  </p>
+
+  <h2>Finite element modes</h2>
+  <div class="figure">
+    <iframe src="examples/modes.html" loading="lazy" scrolling="no"
+            title="Animated finite element mode shapes of a plate"></iframe>
+  </div>
+  <p class="caption">
+    The first six elastic modes of the plate, from a model of 169
+    nodes and 144 elements. Choose one from the list and it animates; drag to
+    turn it. The six rigid-body modes a free-free solution also
+    produces are left out — they show the whole plate moving and say
+    nothing about how it bends.
+  </p>
+
+  <h2>About these figures</h2>
+  <p>
+    They are drawn by the report renderer rather than by anything
+    written for this website, which is deliberate: what you turn here
+    is what a report carries, and a second drawing path built for the
+    web would be free to drift from the first.
+  </p>
+  <p class="note">
+    They are, however, smaller than a report's: a handful of channels
+    rather than every one, so the page arrives quickly and turns
+    smoothly. A report is held to a stricter rule — it must not reduce
+    the data it reports, since a thinned figure cannot answer a
+    question asked of it later — and wherever a figure has been
+    thinned at all it says so, in a note under its own caption.
+    <a href="downloads.html">Download the application</a> to see the
+    whole of it.
+  </p>
+</main>
+<script>
+/* Each figure is a complete report page in a frame, and a frame has a
+   fixed height a report page knows nothing about — so the page tells
+   us how tall it is (see tools/make_web_examples.py) and we cut the
+   frame to fit. A figure the visitor has to scroll inside of, to see a
+   picture, is worse than no figure. */
+addEventListener('message', event => {
+  const data = event.data;
+  if (!data || data.visualdynamics !== 'height') return;
+  for (const frame of document.querySelectorAll('.figure iframe'))
+    if (frame.contentWindow === event.source)
+      frame.style.height = data.height + 'px';
+});
+</script>
+<footer>
+  <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a><br>
+  &copy; 2026 Brandon Zwink.
+</footer>
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>About Visual Dynamics</title>
+<meta name="description" content="What it is, who made it, and what it is trying to be.">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="About Visual Dynamics">
+<meta property="og:description" content="What it is, who made it, and what it is trying to be.">
+<meta property="og:image" content="mark.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<div class="top">
+  <a class="home" href="index.html"><img src="favicon.png" alt="">Visual Dynamics</a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="examples.html">Examples</a>
+    <a href="documentation/">Documentation</a>
+    <a href="downloads.html">Downloads</a>
+    <a href="requests.html">Requests</a>
+    <a href="about.html" aria-current="page">About</a>
+  </nav>
+</div>
+<main>
+  <header><h1>About</h1></header>
+
+  <p class="lede">
+    Visual Dynamics is a units-aware toolset for structural dynamics
+    test work, written from scratch.
+  </p>
+  <p>
+    This toolset was created to streamline workflow and lower the
+    barrier to entry for structural dynamics analysis. One project
+    carries the whole job — import a run, look at it, identify what is
+    there, judge it against a requirement, write the report — and each
+    step knows what the one before it produced.
+  </p>
+
+  <h2>What it is trying to be</h2>
+  <p>
+    Thirteen principles shape it, and they are written down rather than
+    implied: data you can see and handle, a workflow that knows what
+    comes next, an interface that shows only what applies, and a
+    scripting API that can do everything the buttons can — so an
+    analysis done by hand on Tuesday can be replayed over a hundred
+    runs on Wednesday.
+  </p>
+  <p>
+    <a href="https://github.com/visualdynamics/visualdynamics/blob/main/PRINCIPLES.md">Read the principles</a>.
+  </p>
+
+  <h2>Built with AI</h2>
+  <p>
+    This tool was developed using the best AI tools available at the
+    time. AI use is encouraged and embraced in this project to develop
+    code and fix bugs as fast as possible.
+  </p>
+  <p class="note">
+    It is one of the thirteen principles rather than a footnote, and it
+    comes with the rest of them: every fix is falsified against a test
+    that fails without it, and the suite is the gate everything passes
+    before it lands.
+  </p>
+
+  <h2>Units, taken seriously</h2>
+  <p>
+    Every value carries what it is and what it is in. Data is stored in
+    SI and converted at the moment it is displayed, so a plot in g and
+    the same plot in m/s² are one measurement seen twice — not two
+    numbers that might disagree. A record whose units were never
+    declared says so rather than guessing.
+  </p>
+
+  <h2>Standing on</h2>
+  <p>
+    Bendat and Piersol for the spectral conventions; the universal file
+    format for saying what a channel is; and the open structural
+    dynamics tools that showed what these programs should do. Nothing
+    is taken from them — their methods were read and then written here.
+  </p>
+
+  <h2>Getting in touch</h2>
+  <p>
+    Bug reports are very welcome and I will try to fix them promptly.
+    For anything larger, write first:
+    <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a>.
+  </p>
+  <ul class="links">
+    <li><a href="https://github.com/visualdynamics/visualdynamics">Source on GitHub</a></li>
+    <li><a href="https://github.com/visualdynamics/visualdynamics/issues">Report a bug</a></li>
+    <li><a href="documentation/">Documentation</a></li>
+  </ul>
+</main>
+<footer>
+  <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a><br>
+  &copy; 2026 Brandon Zwink.
+</footer>
+</body>
+</html>

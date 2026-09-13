@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Visual Dynamics
+Exec=VisualDynamics %f
+Icon=visualdynamics
+Categories=Science;Engineering;
+MimeType=application/x-vdyn;
+Terminal=false

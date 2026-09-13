@@ -1,0 +1,166 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+# Structural Dynamics Visualization. `visualdynamics` is free on PyPI, so the
+# distribution and the import name are the same word — which `vibe`
+# could never have been, being taken there by an unrelated package.
+name = "visualdynamics"
+# One source of truth, read statically from the package. A tag that
+# means one version here and another in `__init__` is a release
+# nobody can reason about afterwards.
+dynamic = ["version"]
+description = "Structural Dynamics Visualization: a units-aware structural dynamics analysis toolset"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+authors = [{ name = "Brandon Zwink", email = "bzwink@gmail.com" }]
+keywords = [
+    "structural-dynamics", "modal-analysis", "vibration", "frf",
+    "mode-shapes", "modal-test", "units", "engineering",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    # No "License ::" classifier: PEP 639 made the `license` expression
+    # above the one place it is said, and setuptools now refuses both.
+    # (A "Private :: Do Not Upload" classifier stood here until release
+    # day, so PyPI would refuse an accidental upload.)
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Physics",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Operating System :: OS Independent",
+    "Environment :: X11 Applications :: Qt",
+]
+dependencies = [
+    "numpy",
+    # BSD-3-Clause. Runtime, not test-only: the low-pass, the
+    # integration, the filter view's response curve and the sine matched
+    # filter all call it. It was declared a test dependency for a long
+    # while after those arrived, which is a contradiction the frozen
+    # build made real — the spec excluded scipy, so a packaged
+    # application raised ImportError on Filter Data while every test on
+    # a developer's machine passed (found 2026-08-27).
+    #
+    # The wheel bundles OpenBLAS and LAPACK (both BSD), libgfortran
+    # under GPL-3 *with the GCC Runtime Library Exception*, which exists
+    # to permit exactly this combination, and libquadmath under
+    # LGPL-2.1 as a separate shared library — which the --onedir rule
+    # PySide6 already forces keeps replaceable. See NOTICE.md.
+    "scipy",
+    "h5py",
+    "netCDF4",
+    "pint",
+    "pyvista",
+    "pyvistaqt",
+    # BSD-3-Clause. pyvista brings it, but this package imports
+    # `vtkmodules` directly — the stage's marks, the drag picking, the
+    # scene's axes — and what is imported is declared here rather than
+    # relied on arriving under something else (found by
+    # tests/test_declared_dependencies.py, 2026-08-27). No version bound:
+    # pyvista's own cap is what decides which VTK is installed.
+    "vtk",
+    "PySide6",
+    "pyqtgraph",
+    "openpyxl",
+    # A channel table is a spreadsheet, and a DataFrame is what carries a
+    # dtype per column — which is where the per-column rules live.
+    # BSD-3-Clause, so it constrains nothing.
+    "pandas",
+]
+
+[project.urls]
+Homepage = "https://visualdynamics.org"
+Documentation = "https://visualdynamics.org/documentation/"
+Source = "https://github.com/visualdynamics/visualdynamics"
+Issues = "https://github.com/visualdynamics/visualdynamics/issues"
+
+[project.scripts]
+visualdynamics-gui = "visualdynamics.gui:main"
+
+[project.optional-dependencies]
+# scipy is also a runtime dependency (see `dependencies`); the suite
+# additionally uses it as an independent cross-check of the spectral
+# maths, which is a different job from calling it — where a method is
+# checked against scipy rather than delegated to it, the check is only
+# worth having because the implementation is our own.
+# sdypy-sep005 is the sdypy project's own SEP 005 validator (MIT),
+# used only to prove our exported dicts pass *their* compliance
+# check — the package itself never imports it
+dev = ["pytest", "pytest-cov", "pytest-xdist", "ruff", "sdypy-sep005"]
+# The STEP/IGES importer's geometry kernel: OCP bindings (Apache-2.0)
+# over OpenCASCADE (LGPL-2.1 with exception — the same dynamic-linking
+# posture as Qt; see NOTICE.md). Optional so `pip install
+# visualdynamics` stays lean, but installed in every *packaging*
+# environment: the installers ship it, because a frozen app cannot
+# add it later and a capability most users cannot reach is not a
+# capability (Brandon, 2026-09-01).
+step = ["cadquery-ocp"]
+# The API reference is generated from the code at build time by
+# mkdocstrings rather than committed, so the docstrings *are* the
+# reference. All of these are permissive (BSD-2 / MIT / ISC) and none of
+# them is imported by the package — they run the site, not the toolset.
+# ProperDocs is the maintained continuation of MkDocs 1.x (a drop-in;
+# the plugins keep their mkdocs- names and entry points) and MaterialX
+# the continuation of the Material theme, which is in maintenance mode
+# until 2026-11 — both switched 2026-09-04.
+docs = [
+    "properdocs",
+    "mkdocs-materialx",
+    "mkdocstrings[python]",
+    "mkdocs-gen-files",
+    "mkdocs-literate-nav",
+    "mkdocs-section-index",
+]
+
+[tool.setuptools.dynamic]
+version = {attr = "visualdynamics.__version__"}
+
+[tool.setuptools.packages.find]
+# src layout: the package is not at the repository root, so a directory
+# named `visualdynamics` cannot shadow the installed package for a
+# Python started in the checkout's parent. See "The package lives under
+# src/" in PLAN.md.
+where = ["src"]
+include = ["visualdynamics*"]
+
+# PEP 561: the inline annotations are the published types, so an
+# editor driving the scripting API gets real signatures
+[tool.setuptools.package-data]
+visualdynamics = ["py.typed", "gui/icons/*.svg"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.pytest.ini_options]
+# The suite is a thousand-odd headless Qt tests and almost all of the
+# six minutes it took was one core waiting on another. Spread over
+# workers it is well under one, which is the difference between running
+# the whole thing after a change and not bothering. `-n0` puts it back
+# on a single process for a debugging run.
+#
+# Every test that watched for something to happen had to stop waiting a
+# fixed length of time and start waiting for the thing: a saturated
+# machine misses frames, and a timing assumption that held on an idle
+# core is exactly what breaks here.
+# `-m "not slow"` keeps the demonstration model out of the development
+# loop. `visualdynamics.demo.drone` is what the website, the docs and the
+# examples are built from, and checking it means a 6732-DOF eigensolution
+# — forty-six seconds, which was most of the suite's wall clock and none
+# of it about the package. The rules that *are* about the package are
+# stated on a three-quad strip in test_fem.py instead. Run the demo's own
+# suite with `pytest -m slow` (CI does, in a step of its own).
+addopts = '-n auto -m "not slow"'
+markers = [
+    "slow: the demonstration model, built for the website and the docs — run on demand rather than on every edit",
+]
+filterwarnings = [
+    # netCDF4's published wheel is built against an older numpy C API; the
+    # warning is harmless and disappears when upstream rebuilds. Remove this
+    # once netCDF4 ships a wheel built against current numpy.
+    "ignore:numpy.ndarray size changed:RuntimeWarning",
+]

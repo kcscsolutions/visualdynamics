@@ -1,0 +1,56 @@
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+# the x86_64 twin build_macos_intel.sh makes under Rosetta
+.venv-x86_64/
+.pytest_cache/
+.ruff_cache/
+.DS_Store
+# coverage's database, which was committed once by accident
+.coverage
+htmlcov/
+
+# Rattlesnake: the controller's log, and the plant/spec/profile scratch the
+# generator builds on its way to the two .nc4 files that are kept
+Rattlesnake.log
+testdata/_rattlesnake/
+# The drone generator's scratch, which is the same thing again and is 581 MB
+# of it — it was tracked by accident and committed once, which is exactly the
+# size decision the drone set exists to avoid.
+testdata/_rattlesnake_drone/
+testdata/_rattlesnake_plate/
+
+# the whole-airplane stress set: hundreds of megabytes, generated on demand
+# with `python3 testdata/generate_rattlesnake.py --large`
+stressdata/
+
+# The API reference is written into docs/api while the site builds
+# (docs/gen_api.py, via mkdocs-gen-files) and is not part of the
+# repository — the docstrings are.
+docs/api/
+site/
+
+# Installers staged for the launch site's local preview — hardlinks
+# into dist/, made by packaging/stage_downloads.py. Never deployed:
+# gitignored here, and cleared by the script's `clear` before any
+# wrangler deploy of web/launch (wrangler uploads the directory as it
+# stands, gitignore notwithstanding).
+web/launch/downloads/
+web/launch/documentation/
+
+# Packaged builds: hundreds of megabytes, produced from the spec and the
+# tag, and attached to a GitHub Release rather than committed. (build/
+# and dist/ are already ignored above.)
+*.dmg
+*.AppImage
+*setup.exe
+
+# wrangler's local cache: the Cloudflare account id and the account's
+# email, written into the repository directory by `wrangler pages
+# deploy`. No credential — the OAuth token lives in ~/.wrangler — but
+# an account id and a personal address are not repository content.
+# Untracked 2026-08-25; the deploy re-creates it whenever it runs.
+.wrangler/

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feature Requests — Visual Dynamics</title>
+<meta name="description" content="The most-wanted features, as voted by users; requests and votes live in the project's GitHub discussions.">
+<link rel="icon" href="favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:title" content="Feature Requests — Visual Dynamics">
+<meta property="og:description" content="The most-wanted features, as voted by users.">
+<meta property="og:image" content="mark.png">
+<meta property="og:type" content="website">
+<link rel="stylesheet" href="site.css">
+<style>
+  .requests { list-style: none; padding: 0; margin: 1.2rem 0; display: grid; gap: .7rem; }
+  .request { display: flex; align-items: center; gap: 1rem; padding: .8rem 1rem;
+             border: 1px solid var(--line); border-radius: 10px; }
+  .request:hover, .request:focus-within { border-color: var(--accent); }
+  .request .votes { flex: none; min-width: 3.4rem; text-align: center;
+                    font-weight: 600; font-size: 1.15em; }
+  .request .votes small { display: block; font-weight: 400; font-size: .7em;
+                          color: var(--muted); }
+  .request .title { min-width: 0; }
+  .request .title a { text-decoration: none; }
+  .request .title a:hover { text-decoration: underline; }
+  .request .meta { display: block; color: var(--muted); font-size: .82em; margin-top: .15em; }
+  .cta { display: inline-block; margin-top: .4rem; padding: .55rem 1rem;
+         border: 1px solid var(--accent); border-radius: 8px; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="top">
+  <a class="home" href="index.html"><img src="favicon.png" alt="">Visual Dynamics</a>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="workflows.html">Workflows</a>
+    <a href="examples.html">Examples</a>
+    <a href="documentation/">Documentation</a>
+    <a href="downloads.html">Downloads</a>
+    <a href="requests.html" aria-current="page">Requests</a>
+    <a href="about.html">About</a>
+  </nav>
+</div>
+<main>
+  <header><h1>Feature requests</h1>
+    <p class="tagline">What users want next, ranked by their votes.</p></header>
+
+  <p class="lede">
+    Requests and votes live in the project's GitHub discussions, in
+    the <em>Ideas</em> category. One upvote per GitHub account, and the
+    list below is that ranking.
+  </p>
+  <p>
+    <a class="cta" href="https://github.com/visualdynamics/visualdynamics/discussions/categories/ideas">Request a feature, or vote for one</a>
+  </p>
+
+  <h2>Most wanted</h2>
+  <ol class="requests" id="requests">
+    <li class="note" id="requests-note">Loading the current ranking…</li>
+  </ol>
+  <p class="note">
+    To vote, open a request and press the up arrow at its top; to ask
+    for something new, start a discussion in <em>Ideas</em>. Both take a
+    GitHub account, which is what keeps the count to one vote a person.
+  </p>
+</main>
+<footer>
+  <a href="mailto:contact@visualdynamics.org">contact@visualdynamics.org</a><br>
+  &copy; 2026 Brandon Zwink.
+</footer>
+<script>
+/* The ranking comes from /api/requests — a Pages Function beside this
+   page that asks GitHub's GraphQL API for the Ideas discussions and
+   sorts them by upvotes, holding the one read-only token the query
+   needs where a page cannot. The page itself carries no secret and
+   makes no request to GitHub. Until the repository is public the
+   function answers with an empty list and the note says so. */
+(function () {
+  var list = document.getElementById('requests');
+  var note = document.getElementById('requests-note');
+  function say (text) { note.textContent = text; note.hidden = false; }
+  fetch('api/requests').then(function (r) { return r.json(); }).then(function (data) {
+    var items = (data && data.items) || [];
+    if (!items.length) {
+      say(data && data.open === false
+          ? 'Feature requests open with the first public release.'
+          : 'No requests yet — be the first.');
+      return;
+    }
+    note.hidden = true;
+    items.forEach(function (item, k) {
+      var li = document.createElement('li'); li.className = 'request';
+      var votes = document.createElement('div'); votes.className = 'votes';
+      votes.textContent = item.upvotes;
+      var small = document.createElement('small');
+      small.textContent = item.upvotes === 1 ? 'vote' : 'votes';
+      votes.appendChild(small);
+      var title = document.createElement('div'); title.className = 'title';
+      var a = document.createElement('a'); a.href = item.url; a.textContent = item.title;
+      a.rel = 'noopener';
+      var meta = document.createElement('span'); meta.className = 'meta';
+      meta.textContent = '#' + (k + 1) + ' · ' + item.comments + (item.comments === 1 ? ' comment' : ' comments')
+        + (item.answered ? ' · planned' : '');
+      title.appendChild(a); title.appendChild(meta);
+      li.appendChild(votes); li.appendChild(title);
+      list.appendChild(li);
+    });
+  }).catch(function () { say('The ranking could not be loaded; the discussions themselves are a click away above.'); });
+})();
+</script>
+</body>
+</html>

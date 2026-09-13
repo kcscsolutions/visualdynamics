@@ -1,0 +1,277 @@
+"""Shared fixtures.
+
+The GUI ones matter most: a `MainWindow` built here runs in-process and
+headless, so a GUI behaviour can have a named test that runs in
+milliseconds instead of living inside `gui_smoke_script.py` — which is one
+subprocess, all-or-nothing, and reports failures as a line number.
+
+`offscreen_3d=True` is what makes in-process safe: it keeps the Qt/VTK
+render widget from ever being created, and that widget is what makes tearing
+a window down mid-suite unsafe.
+"""
+
+from __future__ import annotations
+
+import os
+
+import pytest
+
+TESTDATA = os.path.join(os.path.dirname(__file__), '..', 'testdata')
+
+
+def fixture_path(*parts):
+    """A path into testdata/. Not named test* — pytest would collect it."""
+    return os.path.join(TESTDATA, *parts)
+
+
+def plate_geometry_and_shapes():
+    """The plate's geometry in metres and its truth shapes — the pair
+    every animation and deflection test starts from."""
+    import visualdynamics
+
+    return (visualdynamics.import_file(fixture_path('plate', 'geometry.npz'),
+                                       length_unit='m'),
+            visualdynamics.import_file(fixture_path('plate', 'shapes.npy')))
+
+
+def select_objects(window, pump, *names):
+    """Select these tree rows, the first one current. Current first:
+    `setCurrentItem` clears a multi-selection."""
+    window.tree.setCurrentItem(window._item_for_object(names[0]))
+    window.tree.clearSelection()
+    for name in names:
+        window._item_for_object(name).setSelected(True)
+    pump()
+
+
+def edit_category(window, pump, label):
+    """Open a geometry category's edit table, the way the pencil does,
+    and return its row."""
+    item = window._item_for_object('Geometry')
+    item.setExpanded(True)
+    child = next(item.child(i) for i in range(item.childCount())
+                 if item.child(i).text(0).startswith(label))
+    window.tree.clearSelection()
+    window.tree.setCurrentItem(child)
+    child.setSelected(True)
+    window.edit_entities()
+    pump()
+    return child
+
+
+def overlay_selection(window, pump, modes=None):
+    """Mode picks beside the FRF: the synthesis-overlay selection.
+
+    Selecting both whole objects opens the fit screen instead, so the
+    overlay is reached the way it reads best anyway — by picking which
+    modes to synthesize from.
+    """
+    shapes = window.objects['Shapes']
+    window.tree.clearSelection()
+    item = window._item_for_object('Shapes')
+    item.setExpanded(True)
+    pump()
+    window.record_grids['Shapes'].select_records(
+        list(modes) if modes is not None else list(range(shapes.num_shapes)))
+    item.setSelected(True)
+    window._item_for_object('FRF').setSelected(True)
+    window.render_current()
+    pump()
+
+
+def prepared_comparison(window, pump):
+    """A project holding a specification and PSDs of the same channels:
+    the random run imported and its PSDs computed. Returns the two
+    names, specification first."""
+    window.import_paths([fixture_path('plate', 'random.nc4')])
+    pump()
+    history = next(n for n, o in window.objects.items()
+                   if type(o).__name__ == 'TimeHistory')
+    item = window._item_for_object(history)
+    window.tree.clearSelection()
+    item.setSelected(True)
+    window.tree.setCurrentItem(item)
+    window.compute_psds()
+    pump()
+    spec = next(n for n, o in window.objects.items()
+                if type(o).__name__ == 'Specification')
+    psd = next(n for n, o in window.objects.items()
+               if type(o).__name__ == 'Psd' and n != spec)
+    return spec, psd
+
+
+def menu_entries(window, qt_app, item):
+    """What the context menu would show for this row: grab the visible
+    menu from a zero-timer and close it. Texts keep their '&'."""
+    from PySide6.QtCore import QPoint, QTimer
+    from PySide6.QtWidgets import QMenu
+
+    window.tree.scrollToItem(item)
+    qt_app.processEvents()
+    rect = window.tree.visualItemRect(item)
+    position = next(
+        (QPoint(rect.center().x(), y)
+         for y in range(rect.top(), rect.bottom() + 1)
+         if window.tree.itemAt(QPoint(rect.center().x(), y)) is item),
+        None)
+    assert position is not None, f'cannot aim at {item.text(0)!r} in {rect}'
+    shown = []
+
+    def grab():
+        for widget in qt_app.topLevelWidgets():
+            if isinstance(widget, QMenu) and widget.isVisible():
+                shown.extend(a.text() for a in widget.actions() if a.text())
+                widget.close()
+
+    QTimer.singleShot(0, grab)
+    window._show_tree_menu(position)
+    qt_app.processEvents()
+    return shown
+
+
+@pytest.fixture(scope='session')
+def qt_app():
+    """One QApplication for the whole session; Qt allows exactly one."""
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    # before the app exists: WebEngine (the report editor) refuses to
+    # share GL contexts declared any later, and hangs under offscreen
+    QApplication.setAttribute(
+        Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+    app = QApplication.instance() or QApplication([])
+    yield app
+    app.processEvents()
+
+
+@pytest.fixture
+def no_swallowed_errors():
+    """Fail the test if Qt ate an exception.
+
+    An exception raised inside a slot — a selection change, a signal —
+    does not propagate: Qt prints it through sys.excepthook and carries
+    on. So the app can be spraying tracebacks at the terminal while the
+    suite stays green, which is exactly what happened when a pane
+    attribute was read before __init__ had set it.
+    """
+    import sys
+
+    caught = []
+    previous = sys.excepthook
+    sys.excepthook = lambda *info: caught.append(info)
+    try:
+        yield caught
+    finally:
+        sys.excepthook = previous
+    if caught:
+        import traceback
+
+        first = ''.join(traceback.format_exception(*caught[0]))
+        raise AssertionError(
+            f'Qt swallowed {len(caught)} exception(s); the first:\n{first}')
+
+
+@pytest.fixture
+def window(qt_app, no_swallowed_errors):
+    """A fresh headless main window, torn down after the test."""
+    from visualdynamics.gui.main_window import MainWindow
+
+    window = MainWindow(offscreen_3d=True)
+    window.resize(1400, 800)
+    window.show()
+    qt_app.processEvents()
+    yield window
+    # the frequency-axis choice is the process's, not the window's; a
+    # test that flipped it must not hand decades to the next one
+    from visualdynamics.core.data import frequency_axis
+    frequency_axis('default')
+    # a WebEnginePage still alive at interpreter exit segfaults the
+    # process — detach the report editor's page before the window goes
+    if getattr(window, 'report_editor', None) is not None:
+        window.report_editor.view.setPage(None)
+    window.close()
+    window.deleteLater()
+    for _ in range(10):
+        qt_app.processEvents()
+
+
+@pytest.fixture
+def flat_reading(request):
+    """Stand the 3-D stage down so a module tests the flat overlays'
+    contracts — the drags, the rail, the table sync — which live on
+    the 2-D plot; the stage's own marks have their tests
+    (test_stage_marks). Opted into per module with
+    `pytestmark = pytest.mark.usefixtures('flat_reading')`, never
+    autouse: the toggle tests need the stage up."""
+    if 'window' in request.fixturenames:
+        window = request.getfixturevalue('window')
+        window.data_pane.waterfall_action.setChecked(False)
+    yield
+
+
+@pytest.fixture
+def flat_grid(request):
+    """Ask for the flat MAC grid first: the bars are the default
+    reading, and a module testing the grid's own machinery — aspect,
+    ticks, zoom, visibility — opts in with `usefixtures`."""
+    if 'window' in request.fixturenames:
+        request.getfixturevalue('window').mac_bars_action.setChecked(False)
+    yield
+
+
+@pytest.fixture
+def project(survey):
+    """The plate's geometry, shapes and FRFs as a project dict — what a
+    report is generated from."""
+    import visualdynamics
+
+    shapes, frfs = survey
+    return {
+        'Geometry': visualdynamics.import_file(fixture_path('plate',
+                                                            'geometry.npz')),
+        'Shape Set': shapes,
+        'FRF': frfs,
+    }
+
+
+@pytest.fixture
+def survey():
+    """(truth shapes, matching FRFs): fixtures born from one model, so a
+    fit or a synthesis can be checked against exact truth. Fresh objects
+    per test — several tests define units on them."""
+    import visualdynamics
+
+    return (visualdynamics.import_file(fixture_path('plate', 'shapes.npy')),
+            visualdynamics.import_file(fixture_path('plate', 'frfs.npz')))
+
+
+@pytest.fixture
+def window_factory(qt_app):
+    """Extra fresh windows, for tests that move things between projects."""
+    from visualdynamics.gui.main_window import MainWindow
+
+    windows = []
+
+    def make():
+        window = MainWindow(offscreen_3d=True)
+        window.resize(1400, 800)
+        window.show()
+        qt_app.processEvents()
+        windows.append(window)
+        return window
+
+    yield make
+    for window in windows:
+        window.close()
+        window.deleteLater()
+    qt_app.processEvents()
+
+
+@pytest.fixture
+def pump(qt_app):
+    """Let queued work run — deferred re-renders, drop-down popups."""
+    def pump(times=8):
+        for _ in range(times):
+            qt_app.processEvents()
+    return pump

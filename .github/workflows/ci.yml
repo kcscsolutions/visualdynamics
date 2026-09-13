@@ -1,0 +1,175 @@
+name: tests
+
+# **Not on push.** The free tier is 2 000 minutes a month and a push was
+# costing 54 of them, which bought about thirty-seven pushes. What that
+# spent them on was mostly a second opinion about a suite that had
+# already been run, in full, on the machine the commit came from — the
+# local suite and lint pass is the gate, and this run is a second
+# opinion taken when a person asks for one.
+#
+# What CI still earns its keep for is the part a laptop cannot do: a
+# *clean machine*. Nothing pip-installed by hand, nothing left over,
+# nothing but what `pyproject.toml` actually declares — which is how the
+# mkdocs-gen-files import that worked locally and failed here was
+# caught. That does not need a calendar: weekly runs helped max out the
+# month's included minutes in August 2026, and GitHub then cancelled
+# every in-progress job — which looked like three weeks of test
+# failures and was none (Brandon, 2026-08-31). A monthly run followed,
+# and went the same way on 2026-09-01. **No schedule at all** (Brandon,
+# 2026-09-01): the free account's minutes are spent only when a person
+# decides to.
+#
+# So: on demand, and on any pull request. Press *Run workflow* on the
+# Actions tab before a release, before handing anyone a build, or after
+# anything touching packaging or version-sensitive syntax.
+on:
+  pull_request:
+  workflow_dispatch:
+
+# A pull request pushed to twice, or *Run workflow* pressed twice,
+# leaves a superseded run burning minutes for an answer nobody reads.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 45, not 30: green runs were finishing at 29-30 minutes by
+    # 2026-08-10 and the suite has grown since — the 08-24 weekly run
+    # hit the cap with zero failing tests. The cap exists to stop a
+    # hung run burning minutes, not to race the suite.
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3.13 alone on pull requests; **both**
+        # on a manual run. `requires-python` promises 3.12, so it
+        # cannot go untested — a dispatch before a release is when it
+        # is checked, which is when it matters. Testing it on every
+        # run doubled the bill for an interpreter that has never yet
+        # been the one to fail.
+        python-version: >-
+          ${{ github.event_name == 'workflow_dispatch'
+              && fromJSON('["3.12", "3.13"]')
+              || fromJSON('["3.13"]') }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      # Qt and VTK need a graphics stack even to render off screen: the
+      # tests run headless (conftest sets QT_QPA_PLATFORM=offscreen) but
+      # pyvista still opens a GL context for its screenshots, which is
+      # what xvfb below provides.
+      - name: Install the graphics libraries Qt and VTK link against
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            xvfb libegl1 libgl1 libopengl0 libglx-mesa0 libxkbcommon-x11-0 \
+            libdbus-1-3 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 \
+            libxcb-shape0 libxcb-xfixes0 libxcb-xinerama0 libnss3 \
+            libxdamage1 libxrandr2 libasound2t64
+
+      - name: Install visualdynamics and its test tools
+        run: pip install -e '.[dev,step]'
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        # Chromium (the report editor's engine) has no usable sandbox in
+        # a container, and asks for a GPU that is not there
+        env:
+          QTWEBENGINE_CHROMIUM_FLAGS: --no-sandbox --disable-gpu
+          # Coverage on one interpreter only: instrumentation is not free
+          # on a run of the better part of half an hour, and the number does not differ
+          # between them. `--cov-report=` writes the data and prints
+          # nothing; the report is assembled once, after the demo step.
+          COV: ${{ matrix.python-version == '3.13'
+                   && '--cov=visualdynamics --cov-report=' || '' }}
+        # --durations: the run takes the better part of half an hour here against three and a
+        # half on the machine it was written on, and twice a hosted
+        # runner has been reclaimed mid-job ("the runner has received a
+        # shutdown signal") in the same silent three-minute stretch a
+        # quarter of the way through. Before changing how it runs, find
+        # out what that stretch is.
+        # -n auto: this ran serially until it was noticed, against the
+        # -n 4 the same suite gets locally. A hosted runner has cores
+        # sitting idle and the free tier is measured in minutes.
+        run: xvfb-run -a python -m pytest tests -q -n auto --durations=20 $COV
+
+      # The demonstration model, deselected from the run above because it
+      # is a forty-six-second eigensolution nobody wants on every edit. It
+      # is what the website and the docs are built from, so it is checked
+      # here rather than left to rot.
+      - name: Test the demonstration model
+        env:
+          QTWEBENGINE_CHROMIUM_FLAGS: --no-sandbox --disable-gpu
+          COV: ${{ matrix.python-version == '3.13'
+                   && '--cov=visualdynamics --cov-append --cov-report=' || '' }}
+        run: xvfb-run -a python -m pytest tests -q -m slow -n auto $COV
+
+      # Both runs together. Measuring only the first would read
+      # `demo/drone.py` at 12% and call the speedup a regression: the
+      # demonstration model is tested, just not on every edit.
+      - name: Coverage
+        if: matrix.python-version == '3.13'
+        run: |
+          total=$(python -m coverage report --format=total)
+          {
+            echo "## Coverage: ${total}%"
+            echo
+            echo "Statements reached by the suite and the demonstration"
+            echo "model together, on Python ${{ matrix.python-version }}."
+            echo
+            echo "<details><summary>By module</summary>"
+            echo
+            python -m coverage report --format=markdown
+            echo
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage html
+
+      - name: Keep the coverage report
+        if: matrix.python-version == '3.13'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: htmlcov/
+
+  # The documentation site. Built, never published: GitHub Pages and Read
+  # the Docs are both public even from a private repository, and this one
+  # stays private — so the site comes back as an artifact to download,
+  # and `properdocs serve` is how it is read while working. --strict fails on
+  # a broken cross-reference, which is what holds the guides to the API
+  # reference now that the reference is generated rather than committed.
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+
+      - name: Install visualdynamics and the documentation tools
+        run: pip install -e '.[docs]'
+
+      - name: Build the site
+        env:
+          DISABLE_MKDOCS_2_WARNING: 'true'
+        run: properdocs build --strict --site-dir site
+
+      - name: Keep the site
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs-site
+          path: site/

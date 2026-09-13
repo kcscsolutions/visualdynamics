@@ -1,0 +1,136 @@
+"""The octave-band reading: principle 13's four parts for a spectrum.
+
+The toggle on the bar, the spacing in the pane, the banded steps
+previewed over the narrowband they integrate, and the Apply button
+running the same `compute_octave` verb a script calls (Brandon,
+2026-08-29 — moved here from the calculator, which no longer offers
+it).
+"""
+
+from __future__ import annotations
+
+import numpy as np
+
+import visualdynamics
+
+
+def _psds(window, pump):
+    rng = np.random.default_rng(6)
+    t = np.arange(16384) / 2048.0
+    history = visualdynamics.TimeHistory(
+        t, rng.standard_normal((2, len(t))),
+        response_dof=['101Z+', '104Z+'], ordinate_dim='acceleration')
+    window.add_object('Record', history)
+    name = window.project.compute_psds('Record')
+    window.show_object(name)
+    pump()
+    pane = window.data_pane
+    if pane.waterfall_action.isChecked():
+        pane.waterfall_action.trigger()
+    window.render_current()
+    pump()
+    return window.objects[name], pane
+
+
+def test_the_reading_is_offered_on_a_plain_density_alone(window, pump):
+    _spectra, pane = _psds(window, pump)
+    assert pane.octave_action.isVisible()
+    # and not on the time history, which has nothing to band
+    item = window._item_for_object('Record')
+    window.tree.clearSelection()
+    item.setSelected(True)
+    window.tree.setCurrentItem(item)
+    window.render_current()
+    pump()
+    assert not pane.octave_action.isVisible()
+
+
+def test_the_toggle_previews_the_steps_over_the_narrowband(window, pump):
+    _spectra, pane = _psds(window, pump)
+    pane.octave_action.trigger()
+    pump()
+    assert pane.octave_panel.isVisible()
+    assert window.octave_previews, 'the steps are on the plot'
+    _plot, curve = window.octave_previews[0]
+    assert curve.xData is not None and len(curve.xData) > 4
+    bands_shown = pane.octave_panel.derived['bands'].text()
+    assert bands_shown.isdigit() and int(bands_shown) * 2 == \
+        len(curve.xData), 'two points per band: the flat step outline'
+
+
+def test_the_spacing_redraws_the_preview(window, pump):
+    _spectra, pane = _psds(window, pump)
+    pane.octave_action.trigger()
+    pump()
+    sixth = len(window.octave_previews[0][1].xData)
+    box = pane.octave_panel.per_box
+    box.setCurrentIndex(box.findData(3))
+    pump()
+    third = len(window.octave_previews[0][1].xData)
+    assert third < sixth, 'coarser bands, fewer steps, live'
+
+
+def test_apply_makes_exactly_the_previewed_banding(window, pump):
+    _spectra, pane = _psds(window, pump)
+    pane.octave_action.trigger()
+    pump()
+    box = pane.octave_panel.per_box
+    box.setCurrentIndex(box.findData(3))
+    pump()
+    pane.octave_panel.apply_button.click()
+    pump()
+    name = next(n for n in window.project.provenance
+                if window.project.provenance[n]['verb'] == 'compute_octave')
+    assert window.project.provenance[name]['params']['per_octave'] == 3, \
+        'the record carries the spacing the preview was drawn with'
+
+
+def test_no_act_offers_it_beside_the_reading(window, pump):
+    psds, _pane = _psds(window, pump)
+    assert window.acts_for([window.project.name_of(psds)]) == [], \
+        'the act lives on the reading\'s pane (Brandon, 2026-08-29)'
+
+
+def test_the_preview_honours_a_record_selection(window, pump):
+    """One sub-item picked, one curve on the plot — and one banded
+    step over it. The preview used to band every channel across the
+    lone selected curve (Brandon, 2026-08-30): the selection said one
+    thing and the plot another."""
+    spectra, pane = _psds(window, pump)
+    name = window.project.name_of(spectra)
+    pane.octave_action.trigger()
+    pump()
+    assert len(window.octave_previews) == 2, 'whole object: both channels'
+    window._select_records(name, [1])
+    window.render_current()
+    pump()
+    assert len(window.octave_previews) == 1, \
+        'one record selected, one preview'
+    banded = spectra.to_octave(pane.octave_panel.per_octave())
+    from visualdynamics.plot import step_outline
+    _x, rows = step_outline(banded.abscissa,
+                            banded.display_ordinate(window.unit_system),
+                            banded.bin_widths())
+    assert np.allclose(window.octave_previews[0][1].yData,
+                       np.abs(np.atleast_2d(rows)[1])), \
+        'and it is the selected record, not the first'
+
+
+def test_the_preview_stands_on_the_stage_too(window, pump):
+    """The 3-D reading gets the same preview: steps at each record's
+    own station, panel beside — it drew nothing at all there at first
+    (Brandon, 2026-08-30)."""
+    _spectra, pane = _psds(window, pump)
+    pane.octave_action.trigger()
+    pump()
+    pane.waterfall_action.trigger()      # onto the stage
+    pump()
+    window.render_current()
+    pump()
+    assert pane._waterfall_page is not None and \
+        pane._waterfall_page.isVisible(), 'the stage is up'
+    assert 'marks-octave' in set(pane.waterfall_plotter.actors), \
+        'the banded steps are stage geometry'
+    assert pane.octave_panel.isVisible(), 'the panel rides the stage'
+    bands = pane.octave_panel.derived['bands'].text()
+    assert bands.isdigit() and int(bands) > 0
