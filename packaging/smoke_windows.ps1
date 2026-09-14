@@ -86,7 +86,11 @@ if ($LASTEXITCODE -ne 0) { throw 'could not write the smoke project' }
 # leaves behind.
 $out = 'dist\smoke\stdout.log'
 $err = 'dist\smoke\stderr.log'
-$proc = Start-Process -FilePath $exe -ArgumentList "`"$vdyn`"" -PassThru `
+# --no-disclaimer: the alpha notice wants a box ticked before the
+# window takes input, and nothing here can tick it — without the flag
+# the test stopped at the dialog and never opened the project
+# (2026-09-14, Brandon's call). The flag is what a script uses too.
+$proc = Start-Process -FilePath $exe -ArgumentList '--no-disclaimer', "`"$vdyn`"" -PassThru `
     -RedirectStandardOutput $out -RedirectStandardError $err
 $title = ''
 foreach ($tick in 1..120) {
