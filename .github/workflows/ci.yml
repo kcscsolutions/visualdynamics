@@ -35,11 +35,10 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    # 45, not 30: green runs were finishing at 29-30 minutes by
-    # 2026-08-10 and the suite has grown since — the 08-24 weekly run
-    # hit the cap with zero failing tests. The cap exists to stop a
-    # hung run burning minutes, not to race the suite.
-    timeout-minutes: 45
+    # 60: a green run at four workers took 12 minutes on a four-core
+    # Linux box once the windows died at teardown (2026-09-13); the cap
+    # exists to stop a hung run burning minutes, not to race the suite.
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -99,9 +98,16 @@ jobs:
         # shutdown signal") in the same silent three-minute stretch a
         # quarter of the way through. Before changing how it runs, find
         # out what that stretch is.
-        # -n auto: this ran serially until it was noticed, against the
-        # -n 4 the same suite gets locally. A hosted runner has cores
-        # sitting idle and the free tier is measured in minutes.
+        # -n auto (four on this runner). For one day this was -n 2: a
+        # worker grew to 2.7 GB because every window a test made
+        # outlived its test (deleteLater never delivered, a lambda on
+        # the application's style hints — 2026-09-13), and four of them
+        # on a 16 GB runner was what systemd-oomd stopped with a SIGTERM.
+        # With windows dying at teardown, four workers peak at 7.4 GB
+        # together in an 8 GB container and a full run takes 12 minutes;
+        # tests/test_window_lifetime.py keeps it that way. A worker that
+        # dies is replaced (xdist's default) and its test reported as
+        # failed: a crash must not hide the rest of the suite.
         run: xvfb-run -a python -m pytest tests -q -n auto --durations=20 $COV
 
       # The demonstration model, deselected from the run above because it

@@ -56,6 +56,11 @@ def _shape_triangles(shape) -> np.ndarray:
     from OCP.TopLoc import TopLoc_Location
     from OCP.TopoDS import TopoDS
 
+    # the 7.9 binding suffixes a static that shares its name with a
+    # method; 8.0 drops the suffix for this one and keeps it for the
+    # rest (2026-09-13, Linux on 8.0.1 beside the Mac on 7.9.3)
+    _as_face = getattr(TopoDS, 'Face_s', None) or TopoDS.Face
+
     box = Bnd_Box()
     BRepBndLib.Add_s(shape, box)
     size = max(box.CornerMax().XYZ().Subtracted(
@@ -65,7 +70,7 @@ def _shape_triangles(shape) -> np.ndarray:
     triangles: list[np.ndarray] = []
     walker = TopExp_Explorer(shape, TopAbs_FACE)
     while walker.More():
-        face = TopoDS.Face_s(walker.Current())
+        face = _as_face(walker.Current())
         location = TopLoc_Location()
         mesh = BRep_Tool.Triangulation_s(face, location)
         if mesh is not None:
@@ -139,8 +144,15 @@ def load(path: str | os.PathLike) -> Geometry:
     """
     _require_kernel()
     from OCP.TDataStd import TDataStd_Name
-    from OCP.TDF import TDF_LabelSequence
     from OCP.XCAFDoc import XCAFDoc_DocumentTool
+
+    try:
+        from OCP.TDF import TDF_LabelSequence
+    except ImportError:
+        # the 8.0 binding names the sequence for what it is; 7.9 kept
+        # the kernel's typedef (2026-09-13: Linux resolved 8.0.1 while
+        # the Mac still had 7.9.3, and the reader has to take both)
+        from OCP.collections import Sequence_TDF_Label as TDF_LabelSequence
 
     from .stl import mesh_geometry
 

@@ -83,6 +83,29 @@ fails on a Python that is needed, or Zensical's mkdocstrings bridge
 gains cross-references — and Sphinx deserves a fresh look at that
 point, since the NumPy docstrings are its native convention.
 
+## The suite's memory
+
+Found and fixed 2026-09-13, and written down so the shape of it is
+not learned twice. An xdist worker of this suite reached 2.7 GB and
+four of them were what killed both CI jobs on a 16 GB runner. The
+cause was not the tests' data but the test fixture: `deleteLater`
+only posts a deferred delete, and `processEvents` never delivers
+one, so every `MainWindow` a test made outlived its test — 15 MB
+empty, far more with a project loaded — and a lambda connected to the
+application's style hints held the Python side of each for good.
+`tests/conftest.py::destroy_window` sends the delete by hand, the
+hints get a bound method, and `tests/test_window_lifetime.py` pins
+both: eight windows made and destroyed leave nothing. After it, four
+workers peak at 7.4 GB together (measured in an 8 GB container) and a
+full run takes 12 minutes on four cores.
+
+What is left is peaks, not leaks, and each is a real computation: the
+wavelet scalogram of a long record (about 1.4 GB in the view tests,
+`core/wavelet.py` pads to the cone's width and transforms every scale
+at once), and one local-only fixture that CI never sees. The
+scalogram could transform in bands of scales if the peak ever
+matters; it does not today.
+
 ## Graphics without a GPU
 
 The third release-workflow run on real Windows (2026-09-01) found

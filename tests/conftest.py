@@ -172,10 +172,59 @@ def no_swallowed_errors():
             f'Qt swallowed {len(caught)} exception(s); the first:\n{first}')
 
 
+def destroy_window(window, qt_app):
+    """Close a window and actually destroy it.
+
+    `deleteLater` only posts a deferred delete, and `processEvents`
+    does not deliver those — so every window a test made outlived its
+    test with its project, its plots and its tree, about 15 MB empty
+    and far more loaded, until an xdist worker reached 2.7 GB and CI
+    was killed for memory (2026-09-13, measured: 15 MB a window
+    before this, 1.3 MB after). The posted delete is sent by hand.
+    """
+    from PySide6.QtCore import QCoreApplication, QEvent
+
+    # work a test queued for the next loop turn — a drop's deferred
+    # import, a settled drag — lands on a live window first, not on a
+    # destroyed one from inside the teardown
+    for _ in range(3):
+        qt_app.processEvents()
+    window.close()
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    for _ in range(10):
+        qt_app.processEvents()
+
+
 @pytest.fixture
 def window(qt_app, no_swallowed_errors):
-    """A fresh headless main window, torn down after the test."""
+    """A fresh headless main window, torn down after the test.
+
+    A modal message box under a headless run is a hang: nobody clicks
+    it, the event loop waits forever, and CI stalled 25 minutes on
+    exactly that before being killed (2026-09-13 — a failed import's
+    warning box). So every static QMessageBox door raises here,
+    naming the box and its text; a test that expects one patches the
+    door itself, as test_import_feedback does."""
+    from PySide6.QtWidgets import QMessageBox
+
     from visualdynamics.gui.main_window import MainWindow
+
+    def refuse(kind):
+        def opened(parent, title='', text='', *args, **kwargs):
+            raise AssertionError(
+                f'a modal QMessageBox.{kind} opened under a headless '
+                f'test — {title!r}: {text!r}')
+        return staticmethod(opened)
+
+    # patched by hand, not through the monkeypatch fixture: asking for
+    # that fixture here would set it up before the window and tear it
+    # down after, leaving a test's own patches (a fake report editor,
+    # say) in place while the window closes
+    doors = {kind: getattr(QMessageBox, kind)
+             for kind in ('warning', 'critical', 'information', 'question')}
+    for kind in doors:
+        setattr(QMessageBox, kind, refuse(kind))
 
     window = MainWindow(offscreen_3d=True)
     window.resize(1400, 800)
@@ -190,10 +239,9 @@ def window(qt_app, no_swallowed_errors):
     # process — detach the report editor's page before the window goes
     if getattr(window, 'report_editor', None) is not None:
         window.report_editor.view.setPage(None)
-    window.close()
-    window.deleteLater()
-    for _ in range(10):
-        qt_app.processEvents()
+    destroy_window(window, qt_app)
+    for kind, door in doors.items():
+        setattr(QMessageBox, kind, door)
 
 
 @pytest.fixture
@@ -263,9 +311,7 @@ def window_factory(qt_app):
 
     yield make
     for window in windows:
-        window.close()
-        window.deleteLater()
-    qt_app.processEvents()
+        destroy_window(window, qt_app)
 
 
 @pytest.fixture

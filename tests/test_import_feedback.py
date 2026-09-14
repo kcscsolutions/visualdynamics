@@ -14,6 +14,7 @@ them the only feedback the user gets in their situation:
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from conftest import fixture_path
 
 import visualdynamics
@@ -107,3 +108,14 @@ def test_a_malformed_file_is_reported_rather_than_thrown(window, pump,
     assert 'broken.unv' in text
     assert 'IndexError' in text, (
         'the kind of failure, since the message alone reads as nonsense')
+
+
+def test_a_message_box_under_a_headless_test_fails_by_name(window, pump,
+                                                          tmp_path):
+    """The fixture's guard: a failed import wants to raise a warning
+    box, and with nobody to click it a headless run would hang there
+    — CI did, for 25 minutes, on a project file absent from the runner
+    (2026-09-13). The box raises instead, naming itself."""
+    missing = tmp_path / 'nowhere.vdyn'
+    with pytest.raises(AssertionError, match='QMessageBox.warning'):
+        window.import_paths([str(missing)])

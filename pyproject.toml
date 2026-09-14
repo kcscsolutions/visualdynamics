@@ -91,7 +91,7 @@ visualdynamics-gui = "visualdynamics.gui:main"
 # sdypy-sep005 is the sdypy project's own SEP 005 validator (MIT),
 # used only to prove our exported dicts pass *their* compliance
 # check — the package itself never imports it
-dev = ["pytest", "pytest-cov", "pytest-xdist", "ruff", "sdypy-sep005"]
+dev = ["pytest", "pytest-cov", "pytest-xdist", "pyyaml", "ruff", "sdypy-sep005"]
 # The STEP/IGES importer's geometry kernel: OCP bindings (Apache-2.0)
 # over OpenCASCADE (LGPL-2.1 with exception — the same dynamic-linking
 # posture as Qt; see NOTICE.md). Optional so `pip install

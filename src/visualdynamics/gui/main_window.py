@@ -1376,7 +1376,13 @@ class MainWindow(QMainWindow):
 
         hints = QApplication.instance().styleHints()
         if hasattr(hints, 'colorSchemeChanged'):
-            hints.colorSchemeChanged.connect(lambda _: self.apply_theme())
+            # a bound method, never a lambda: the style hints live as
+            # long as the application, and a lambda capturing self
+            # would keep every closed window alive with its project —
+            # the 15 MB-a-window leak that grew CI's workers to 2.7 GB
+            # (2026-09-13). PySide drops a bound-method connection when
+            # its receiver is destroyed.
+            hints.colorSchemeChanged.connect(self._scheme_changed)
         # and once now: the panes coloured themselves at construction,
         # but the tree's palette only exists in apply_theme — without
         # this it wore the platform's grey until the OS switched theme
@@ -2078,6 +2084,10 @@ class MainWindow(QMainWindow):
             self.dofs_combo.setCurrentIndex(quantities.index(previous))
         self.dofs_combo.blockSignals(False)
         self.dofs_combo_action.setVisible(bool(quantities))
+
+    def _scheme_changed(self, _scheme) -> None:
+        """The platform switched light and dark: restate the theme."""
+        self.apply_theme()
 
     def apply_theme(self, name: str | None = None) -> None:
         """Adopt a light/dark theme (default: whatever the OS is set to)."""

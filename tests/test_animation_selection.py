@@ -9,7 +9,10 @@ animator refuses more than one), and picking cells deselected the geometry.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
+import pytest
 from conftest import fixture_path
 
 from visualdynamics.core.data import TimeHistory
@@ -464,7 +467,14 @@ def test_a_picked_cpsd_reference_column_animates_the_ods(window, pump):
 def _transient_pair(window, pump):
     from visualdynamics.core.data import TimeHistory, TransientSpecification
 
-    window.import_paths(['stressdata/plate_projects/transient.vdyn'])
+    path = fixture_path('..', 'stressdata', 'plate_projects', 'transient.vdyn')
+    if not os.path.exists(path):
+        # gitignored and regenerable, so absent on every machine but
+        # this one — and an import that fails raises a warning box,
+        # which under a headless run is a hang: CI stalled here for 25
+        # minutes and was killed (2026-09-13)
+        pytest.skip('plate stressdata not on this machine')
+    window.import_paths([path])
     pump()
     history = next(n for n, o in window.objects.items()
                    if isinstance(o, TimeHistory)

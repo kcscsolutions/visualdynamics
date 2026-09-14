@@ -516,7 +516,11 @@ class ReportEditor(QWidget):
 
         def restore(_ok: bool) -> None:
             self.view.loadFinished.disconnect(restore)
-            QTimer.singleShot(50, lambda: self.view.page().runJavaScript(
+            # the view as the timer's context: a window closed inside
+            # those 50 ms takes the view with it, and a bare singleShot
+            # then fired into a deleted QWebEngineView (2026-09-13, once
+            # windows really died at teardown)
+            QTimer.singleShot(50, self.view, lambda: self.view.page().runJavaScript(
                 f'window.scrollTo(0, {int(scroll)});'))
 
         self.view.loadFinished.connect(restore)

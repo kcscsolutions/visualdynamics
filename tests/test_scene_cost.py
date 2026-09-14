@@ -133,8 +133,11 @@ def test_a_frame_allocates_nothing_that_grows_with_the_model(small, qt_app):
     nodes = small.num_nodes
 
     def big_arrays():
+        # type(), not isinstance(): the heap holds weak proxies whose
+        # referents have died (destroyed windows, now that they do),
+        # and isinstance on a dead proxy raises ReferenceError
         return sum(1 for obj in gc.get_objects()
-                   if isinstance(obj, np.ndarray) and obj.size >= nodes)
+                   if type(obj) is np.ndarray and obj.size >= nodes)
 
     before = big_arrays()
     for step in range(10):
