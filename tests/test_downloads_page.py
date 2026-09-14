@@ -74,9 +74,14 @@ def test_the_site_job_deploys_the_directory_the_docs_build_into():
     assert workflow[True]['release'] == {'types': ['published']}
     site = workflow['jobs']['site']
     assert site['if'] == "github.event_name == 'release'"
-    deploy = [step['run'] for step in site['steps'] if 'wrangler' in step.get('run', '')]
+    deploy = [step for step in site['steps'] if 'wrangler' in step.get('run', '')]
     assert len(deploy) == 1
-    deployed = deploy[0].split('pages deploy ')[1].split()[0]
+    # the step runs inside the site directory and deploys '.', so that
+    # wrangler finds ./functions where it runs (2026-09-14) — the
+    # directory it deploys is the two joined
+    target = deploy[0]['run'].split('pages deploy ')[1].split()[0]
+    deployed = os.path.normpath(
+        os.path.join(deploy[0].get('working-directory', '.'), target))
     assert docs['site_dir'].startswith(deployed + '/'), (
         f'mkdocs builds into {docs["site_dir"]}, the job deploys {deployed}')
     manifest = [step for step in site['steps'] if 'latest.json' in step.get('run', '')]

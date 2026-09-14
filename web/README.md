@@ -45,11 +45,16 @@ The domain is on Cloudflare, so Cloudflare Pages is the short road.
 **From this repo**, now that the machine holds a wrangler OAuth token:
 
 ```bash
-npx wrangler pages deploy web/public --project-name=visualdynamics --branch=main
+cd web/launch && npx wrangler pages deploy . --project-name=visualdynamics --branch=main
 ```
 
-The path is relative to the repo root; run it from anywhere else and
-it fails with ENOENT. This is a token for pushing assets, which is a
+From *inside* the site directory, deploying `.`: wrangler reads Pages
+Functions from `./functions` relative to where it runs, not from the
+directory it deploys — deployed from the repo root, the pages went up
+without `/api/requests` and the site served `index.html` in its place
+(2026-09-14). "Uploading Functions bundle" in the output is the line
+that says the function shipped. (`web/public/` was the holding page
+the site served until the first release.) This is a token for pushing assets, which is a
 narrower grant than the GitHub connection ruled out below — Cloudflare
 never sees the source.
 
@@ -98,7 +103,7 @@ once built (http://127.0.0.1:8710/documentation/). Order on the day:
 ```bash
 ./.venv/bin/python packaging/stage_downloads.py clear
 ./.venv/bin/properdocs build --strict
-npx wrangler pages deploy web/launch --project-name=visualdynamics --branch=main
+cd web/launch && npx wrangler pages deploy . --project-name=visualdynamics --branch=main
 ```
 
 Skip the middle line and the deployed site's Documentation link is a

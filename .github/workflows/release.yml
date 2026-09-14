@@ -201,11 +201,18 @@ jobs:
                     open('web/launch/latest.json', 'w'), indent=2)
           print(open('web/launch/latest.json').read())
           EOF
+      # From inside the site directory, deploying '.': wrangler reads
+      # Pages Functions from ./functions relative to where it *runs*,
+      # not from the directory it deploys, so the first release's
+      # deploy shipped the pages without /api/requests and the site
+      # served index.html in its place (2026-09-14). "Uploading
+      # Functions bundle" in the log is the line that says it worked.
       - name: Deploy the site
+        working-directory: web/launch
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx --yes wrangler pages deploy web/launch --project-name=visualdynamics --branch=main
+        run: npx --yes wrangler pages deploy . --project-name=visualdynamics --branch=main
 
   # PyPI, by trusted publishing: no token anywhere — PyPI accepts this
   # workflow's own identity, registered once in the account as a
