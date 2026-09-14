@@ -140,6 +140,22 @@ def test_the_export_page_names_every_format():
         f'docs/export.md does not name: {sorted(real - named)}')
 
 
+def test_the_navigation_wraps_on_a_phone():
+    """Seven links in one unwrappable row were 647 px on a 375 px phone:
+    every page became 669 px wide and the phone zoomed the whole site
+    out to fit (Brandon, 2026-09-14). The bar wraps, and tightens
+    under 40rem. Pinned on the stylesheet's own words, since no
+    browser runs here."""
+    css = (LAUNCH / 'site.css').read_text(encoding='utf-8')
+    nav = re.search(r'\.top nav \{([^}]*)\}', css)
+    assert nav and 'flex-wrap: wrap' in nav.group(1), 'the bar must wrap'
+    assert re.search(r'@media \(max-width: 40rem\) \{\s*\.top nav', css), \
+        'and tighten on a phone'
+    code = re.search(r'\ncode \{([^}]*)\}', css)
+    assert code and 'overflow-wrap: anywhere' in code.group(1), \
+        'a URL in inline code must break rather than widen the page'
+
+
 # ---- the feature-requests page ---------------------------------------------
 
 IDEAS = 'https://github.com/visualdynamics/visualdynamics/discussions/categories/ideas'

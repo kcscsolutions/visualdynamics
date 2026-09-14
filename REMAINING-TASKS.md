@@ -123,7 +123,9 @@ Mesa respectively).
 
 ## Release
 
-**The day-of order** (written 2026-09-01, when the shared repository
+**Done 2026-09-14: Visual Dynamics 0.1.0a1 is public.** The order
+below is kept as the record of what a release takes, for the next
+one. **The day-of order** (written 2026-09-01, when the shared repository
 was brought current and the ownership question closed). Nothing here
 is public until step 6, steps 1 to 5 are all reversible, and step 7
 happens on its own once 6 is done.
