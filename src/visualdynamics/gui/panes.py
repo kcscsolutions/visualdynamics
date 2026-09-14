@@ -1527,6 +1527,7 @@ class ScenePane(QWidget):
             # create_plotter() instead, once the pane is on screen.
             self.plotter = None
             self._page = QLabel('Loading 3D view...')
+        self._creating_plotter: bool = False
         # the settings panels sit beside the view rather than under
         # it, the data pane's own arrangement: the rigid-body table is
         # read against the model it is moving, and both want the height
@@ -1616,14 +1617,25 @@ class ScenePane(QWidget):
         Returns the plotter, or None if it was already built — the caller
         usually wants to draw into a view that has just appeared.
         """
-        if self.plotter is not None:
+        if self.plotter is not None or self._creating_plotter:
             return None
         from pyvistaqt import QtInteractor
 
         from ..viz import undeferred
 
         placeholder = self._page
-        self.plotter = undeferred(QtInteractor(self))
+        # Re-entrant on Windows: making the VTK view's native window
+        # re-shows the main window, whose showEvent lands here again
+        # while the first QtInteractor is half-built — and built a
+        # second, then read `renderers` off the first before it had
+        # any. The first Windows launch of 0.1.0a1 died in that loop
+        # (the release smoke test, 2026-09-14). One construction at a
+        # time; the nested call answers None and the outer one draws.
+        self._creating_plotter = True
+        try:
+            self.plotter = undeferred(QtInteractor(self))
+        finally:
+            self._creating_plotter = False
         # pyvistaqt takes drops and answers them with `pyvista.read`, so a
         # .vdyn dropped on the 3D view — aimed at the window, landing
         # here — comes back as "not able to be automatically read by

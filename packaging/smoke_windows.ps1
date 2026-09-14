@@ -123,6 +123,16 @@ $graphics.CopyFromScreen($screen.Left, $screen.Top, 0, 0, $bitmap.Size)
 $bitmap.Save('dist\smoke\launched.png')
 Write-Host 'screenshot: dist\smoke\launched.png'
 
+# 4b. A window up and a traceback on stderr is a crash with a
+# screenshot: the first Windows launch of 0.1.0a1 showed an unhandled-
+# exception dialog behind a titled window, and this test called it a
+# pass (2026-09-14). The frozen build prints its tracebacks to stderr
+# before the dialog; any there fails the build, screenshot or not.
+if ((Test-Path $err) -and (Select-String -Path $err -Pattern 'Traceback|Unhandled exception|Error calling Python override' -Quiet)) {
+    Write-Host "--- $err"; Get-Content $err | Select-Object -Last 40
+    throw 'the application raised after opening: see stderr.log and launched.png'
+}
+
 # 5. Ask it to close; insist only if it will not. A hang on close is
 # worth knowing about but not worth failing a build the screenshot
 # already vouches for — it goes to the log, loudly.

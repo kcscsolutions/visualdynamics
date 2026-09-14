@@ -142,8 +142,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      # the builds only: the Windows smoke test's screenshot and logs
+      # are artifacts too, and taking every artifact attached them to
+      # the release and tripped over an empty stdout.log, which GitHub
+      # refuses as an asset (the first tag, 2026-09-14)
       - uses: actions/download-artifact@v4
-        with: {path: builds, merge-multiple: true}
+        with: {path: builds, merge-multiple: true, pattern: '{linux,windows,macos}'}
       # SHA256SUMS beside the builds, in sha256sum's own format so
       # `shasum -a 256 -c SHA256SUMS` verifies a download — the
       # downloads page promises "notes and checksums" (2026-09-11).

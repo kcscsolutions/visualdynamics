@@ -441,16 +441,26 @@ class _WindowDragWatch(QObject):
     def __init__(self, window) -> None:
         super().__init__(window)
         self._window = window
+        self._watched = None                # the QWindow filtered so far
         window.installEventFilter(self)     # for winId changes
-        if window.windowHandle() is not None:
-            window.windowHandle().installEventFilter(self)
+        self._watch_handle()
+
+    def _watch_handle(self) -> None:
+        """Filter the widget's QWindow, once per QWindow: a Show can
+        arrive more than once (Windows re-shows the main window when a
+        native child is made), and stacking a filter per Show is what
+        put this object on the stack six deep in the 0.1.0a1 launch
+        crash (2026-09-14)."""
+        handle = self._window.windowHandle()
+        if handle is not None and handle is not self._watched:
+            handle.installEventFilter(self)
+            self._watched = handle
 
     def eventFilter(self, target, event):
         from .project_tree import trace_drag
 
-        if target is self._window and event.type() == QEvent.Type.Show \
-                and self._window.windowHandle() is not None:
-            self._window.windowHandle().installEventFilter(self)
+        if target is self._window and event.type() == QEvent.Type.Show:
+            self._watch_handle()
         kind = self._KINDS.get(event.type())
         if kind is not None and target is self._window.windowHandle():
             mime = getattr(event, 'mimeData', lambda: None)()
