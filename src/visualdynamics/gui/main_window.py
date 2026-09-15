@@ -179,6 +179,7 @@ from .object_tables import (
 from .panes import DataPane, ScenePane
 from .preferences import (
     chosen_scheme,
+    refresh_palettes,
     remember_appearance,
     remembered_appearance,
     wear_appearance,
@@ -2126,7 +2127,10 @@ class MainWindow(QMainWindow):
 
     def _scheme_changed(self, _scheme) -> None:
         """The platform switched light and dark: restate the theme —
-        which follows it only while the appearance is System."""
+        which follows it only while the appearance is System — and
+        make every widget re-read the palette, which they do not do
+        on their own (gui/preferences.py, `refresh_palettes`)."""
+        refresh_palettes()
         self.apply_theme()
 
     def choose_appearance(self, choice: str) -> None:
@@ -2154,7 +2158,11 @@ class MainWindow(QMainWindow):
         _keep_selection_vivid(self.table)
         pg.setConfigOption('foreground', colors['plot_foreground'])
         self.data_pane.apply_theme(self.theme_name, colors)
-        self.scene.apply_background()
+        # the scene's own theme name, not just its background: told
+        # only to repaint, it repainted in the theme it was built with,
+        # and a window opened light stayed white after Dark (Brandon's
+        # screenshot, 2026-09-14)
+        self.scene.apply_theme(self.theme_name)
         # the tree wears the scene's own ground — one theme for every
         # surface, black or white, never the platform's grey (Brandon,
         # 2026-08-23)

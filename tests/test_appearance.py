@@ -167,3 +167,37 @@ def test_wear_appearance_maps_the_choice_onto_qt(qt_app):
     preferences.remember_appearance('dark')
     preferences.wear_appearance(app)          # the default: what is chosen
     assert app.hints.set[-1] == Qt.ColorScheme.Dark
+
+
+def test_the_scene_is_told_the_theme_not_just_to_repaint(window, pump):
+    """Told only to repaint, the 3-D view repainted in the theme it was
+    built with: a window opened light stayed white after Dark
+    (Brandon's screenshot, 2026-09-14)."""
+    actions = _appearance_actions(window)
+    actions['&Light'].trigger()
+    pump()
+    assert window.scene.theme_name == 'light'
+    actions['&Dark'].trigger()
+    pump()
+    assert window.scene.theme_name == 'dark'
+    assert window.data_pane.theme_name == 'dark'
+
+
+def test_a_refresh_leaves_the_themed_widgets_their_own_palette(window, pump):
+    """`refresh_palettes` makes widgets re-read the application palette
+    (macOS widgets keep a stale one after a scheme switch) and must not
+    take the tree's and the tables' own theme colours away with it."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QPalette
+
+    from visualdynamics.gui.main_window import resolve_theme
+
+    base_before = window.tree.palette().color(QPalette.ColorRole.Base).name()
+    assert window.tree.testAttribute(Qt.WidgetAttribute.WA_SetPalette)
+    preferences.refresh_palettes()
+    pump()
+    assert window.tree.testAttribute(Qt.WidgetAttribute.WA_SetPalette)
+    assert window.tree.palette().color(QPalette.ColorRole.Base).name() == base_before
+    assert base_before == resolve_theme(window.theme_name)['scene_background'].lower()
+    assert not window.statusBar().testAttribute(Qt.WidgetAttribute.WA_SetPalette), \
+        'a refreshed widget does not come to own a palette'

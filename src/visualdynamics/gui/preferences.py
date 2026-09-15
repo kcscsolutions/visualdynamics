@@ -106,3 +106,30 @@ def wear_appearance(app: Any = None, choice: str | None = None) -> None:
     hints.setColorScheme({'light': Qt.ColorScheme.Light,
                           'dark': Qt.ColorScheme.Dark}.get(
                               choice, Qt.ColorScheme.Unknown))
+    refresh_palettes(app)
+
+
+def refresh_palettes(app: Any = None) -> None:
+    """Make every widget re-read the application palette.
+
+    On macOS with Qt 6.11 the application palette follows a colour
+    scheme change at once, but widgets already on screen keep the
+    palette they resolved before it — the status bar and the panes
+    stayed light after Brandon switched back to Dark (his screenshot,
+    2026-09-14), while a fresh window came up right. Setting an
+    *empty* palette on a widget makes it resolve from its parent and
+    the application again, and leaves `WA_SetPalette` clear, so the
+    widgets that own a palette on purpose (the tree and the tables,
+    coloured by the theme) are skipped and keep theirs.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtGui import QPalette
+    from PySide6.QtWidgets import QApplication, QWidget
+
+    app = app or QApplication.instance()
+    if app is None or not hasattr(app, 'topLevelWidgets'):
+        return
+    for top in app.topLevelWidgets():
+        for widget in (top, *top.findChildren(QWidget)):
+            if not widget.testAttribute(Qt.WidgetAttribute.WA_SetPalette):
+                widget.setPalette(QPalette())
