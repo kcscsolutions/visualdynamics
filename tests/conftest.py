@@ -13,10 +13,21 @@ a window down mid-suite unsafe.
 from __future__ import annotations
 
 import os
+import tempfile
 
 import pytest
 
 TESTDATA = os.path.join(os.path.dirname(__file__), '..', 'testdata')
+
+# The preferences the window remembers (File → Appearance) go to a
+# folder of the session's own, never the user's real store — and this
+# is done here, at import, not in a fixture: a fixture only guards the
+# tests that ask for it, and a preferences test that did not ask for
+# the app wrote 'light' into Brandon's own settings file (2026-09-14),
+# which is exactly the kind of thing a test must never do.
+SETTINGS_STORE = tempfile.mkdtemp(prefix='visualdynamics-settings-')
+os.environ['VISUALDYNAMICS_SETTINGS'] = os.path.join(SETTINGS_STORE,
+                                                     'preferences.ini')
 
 
 def fixture_path(*parts):
@@ -141,15 +152,6 @@ def qt_app():
     QApplication.setAttribute(
         Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication.instance() or QApplication([])
-    # the preferences the window remembers (File → Appearance) go to a
-    # folder of the session's own, never the user's real store
-    import tempfile
-
-    from PySide6.QtCore import QSettings
-    store = tempfile.mkdtemp(prefix='visualdynamics-settings-')
-    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
-    QSettings.setPath(QSettings.Format.IniFormat,
-                      QSettings.Scope.UserScope, store)
     yield app
     app.processEvents()
 

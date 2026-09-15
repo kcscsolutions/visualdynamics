@@ -87,3 +87,13 @@ def test_this_launchs_statement_beats_the_remembered_choice(monkeypatch):
 def test_the_store_refuses_a_word_that_is_not_an_appearance():
     with pytest.raises(ValueError):
         preferences.remember_appearance('sepia')
+
+
+def test_the_tests_never_touch_the_real_store():
+    """The store the tests write is the session's own folder, set at
+    conftest import — a fixture-scoped redirect left one test writing
+    into the real preferences file (2026-09-14)."""
+    from conftest import SETTINGS_STORE
+
+    assert preferences.settings().fileName().startswith(SETTINGS_STORE), \
+        preferences.settings().fileName()

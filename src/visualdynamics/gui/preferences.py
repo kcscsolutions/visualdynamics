@@ -27,8 +27,18 @@ APPEARANCES = ('system', 'light', 'dark')
 KEY = 'appearance'
 
 
+#: a file to keep the preferences in instead of the platform's store —
+#: what the tests set, so nothing a test chooses reaches the user's own
+STORE = 'VISUALDYNAMICS_SETTINGS'
+
+
 def settings() -> QSettings:
-    """The application's own store."""
+    """The application's own store: the platform's (a plist on macOS,
+    the registry on Windows, a file under ~/.config on Linux), or the
+    file `VISUALDYNAMICS_SETTINGS` names."""
+    path = os.environ.get(STORE)
+    if path:
+        return QSettings(path, QSettings.Format.IniFormat)
     return QSettings('visualdynamics', 'Visual Dynamics')
 
 
