@@ -148,12 +148,23 @@ def colormap(values: Any) -> Any:
     return stops[low] * (1.0 - f) + stops[low + 1] * f
 
 
+#: an explicit answer beats every guess: `VISUALDYNAMICS_THEME=dark`
+#: (or light) in the environment, which the launcher's `--theme` sets
+OVERRIDE = 'VISUALDYNAMICS_THEME'
+
+
 def system_scheme(app: Any = None) -> str:
-    """'dark' or 'light' from the OS appearance, via Qt.
+    """'dark' or 'light': the environment's say, else the OS appearance
+    via Qt, else the desktop asked directly, else the palette.
 
     Falls back to the default theme when Qt or an application instance is
     unavailable (e.g. plain scripting use).
     """
+    import os
+
+    said = os.environ.get(OVERRIDE, '').strip().lower()
+    if said in THEMES:
+        return said
     try:
         from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QApplication
@@ -167,6 +178,66 @@ def system_scheme(app: Any = None) -> str:
         return 'dark'
     if scheme == Qt.ColorScheme.Light:
         return 'light'
-    palette = app.palette()  # Qt could not tell: judge by palette lightness
+    # Qt could not tell. On Linux that is the usual case: Qt learns the
+    # scheme through a platform-theme plugin, and a packaged build
+    # shipped none until 2026-09-14 — a friend of Brandon's on a dark
+    # desktop got a light window. The desktop is asked directly before
+    # the palette is judged, since the palette is Qt's own light one
+    # whenever the plugin is missing.
+    asked = desktop_scheme()
+    if asked is not None:
+        return asked
+    palette = app.palette()  # judge by palette lightness
     return ('dark' if palette.color(palette.ColorRole.Window).lightness() < 128
             else 'light')
+
+
+def desktop_scheme(platform: str | None = None,
+                   run: Any = None, home: str | None = None) -> str | None:
+    """The Linux desktop's own answer, or None where there is none.
+
+    Three doors, in the order a modern desktop answers them: the XDG
+    settings portal's `color-scheme` (GNOME, KDE and the rest, over
+    D-Bus through `gdbus`, which ships with GLib), GNOME's
+    `gsettings` key of the same name, and KDE's `kdeglobals`. Each is
+    a subprocess or a file read with a short timeout, and any failure
+    is "no answer" — never an exception in the way of a window.
+    `platform`, `run` and `home` are for the tests.
+    """
+    import os
+    import subprocess
+    import sys
+
+    platform = platform or sys.platform
+    if not platform.startswith('linux'):
+        return None
+    run = run or (lambda cmd: subprocess.run(
+        cmd, capture_output=True, text=True, timeout=2, check=False).stdout)
+    for command, dark, light in (
+            (['gdbus', 'call', '--session',
+              '--dest', 'org.freedesktop.portal.Desktop',
+              '--object-path', '/org/freedesktop/portal/desktop',
+              '--method', 'org.freedesktop.portal.Settings.ReadOne',
+              'org.freedesktop.appearance', 'color-scheme'],
+             'uint32 1', 'uint32 2'),
+            (['gsettings', 'get', 'org.gnome.desktop.interface',
+              'color-scheme'],
+             'prefer-dark', 'prefer-light')):
+        try:
+            out = run(command) or ''
+        except Exception:  # noqa: BLE001, S112 — absent tool, timeout: no answer from this door
+            continue
+        if dark in out:
+            return 'dark'
+        if light in out:
+            return 'light'
+    try:
+        kdeglobals = os.path.join(home or os.path.expanduser('~'),
+                                  '.config', 'kdeglobals')
+        with open(kdeglobals, encoding='utf-8', errors='replace') as f:
+            for line in f:
+                if line.strip().lower().startswith('colorscheme='):
+                    return ('dark' if 'dark' in line.lower() else 'light')
+    except OSError:
+        pass
+    return None

@@ -127,10 +127,25 @@ executable = EXE(                                          # noqa: F821
     (str(ROOT / 'packaging' / 'icon.ico') if WINDOWS else None),
 )
 
+# Qt learns a Linux desktop's light/dark preference through a
+# platform-theme plugin — libqgtk3 on GNOME, libqxdgdesktopportal over
+# the settings portal — and PyInstaller's hook collects neither, so the
+# AppImage opened light on a dark desktop (a friend of Brandon's,
+# 2026-09-14). The wheel ships both; they ride along, and a plugin
+# whose libraries the host lacks (gtk3, say) is simply not loaded.
+platform_themes = []
+if not MAC and not WINDOWS:
+    import PySide6
+    themes_dir = Path(PySide6.__file__).parent / 'Qt' / 'plugins' / 'platformthemes'
+    if themes_dir.is_dir():
+        platform_themes = [Tree(str(themes_dir),               # noqa: F821
+                               prefix='PySide6/Qt/plugins/platformthemes')]
+
 collected = COLLECT(                                       # noqa: F821
     executable,
     analysis.binaries,
     analysis.datas,
+    *platform_themes,
     strip=False,
     upx=False,
     upx_exclude=[],

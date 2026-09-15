@@ -284,3 +284,19 @@ def test_the_packages_carry_the_lgpl_paper_trail():
         'right in name only')
     notice = (root / 'NOTICE.md').read_text(encoding='utf-8')
     assert 'qt-replacement.md' in notice
+
+
+def test_the_linux_package_ships_the_platform_theme_plugins():
+    """Qt learns a Linux desktop's light/dark preference through a
+    platform-theme plugin, and PyInstaller's hook collects none, so
+    the AppImage opened light on a dark desktop (a friend of Brandon's,
+    2026-09-14). The spec adds the wheel's platformthemes directory to
+    the collection on Linux; pinned on the spec's own words, since the
+    Linux build runs elsewhere."""
+    import pathlib
+
+    root = pathlib.Path(__file__).parent.parent
+    spec = (root / 'packaging' / 'visualdynamics.spec'
+            ).read_text(encoding='utf-8')
+    assert "'platformthemes'" in spec and "prefix='PySide6/Qt/plugins/platformthemes'" in spec
+    assert '*platform_themes,' in spec, 'built, but not handed to COLLECT'

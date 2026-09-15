@@ -92,6 +92,30 @@ def check_qt_binding() -> None:
         f'which then breaks sdynpy\'s own plotting in that process.')
 
 
+def theme_flag(argv: list[str]) -> tuple[list[str], str | None]:
+    """Take `--theme dark`, `--theme light` or `--theme=dark` out of
+    the arguments: the rest, and the theme named, or None."""
+    rest: list[str] = []
+    theme = None
+    skip = False
+    for i, arg in enumerate(argv):
+        if skip:
+            skip = False
+            continue
+        if arg.startswith('--theme='):
+            theme = arg.split('=', 1)[1]
+        elif arg == '--theme' and i + 1 < len(argv):
+            theme = argv[i + 1]
+            skip = True
+        else:
+            rest.append(arg)
+    if theme is not None:
+        theme = theme.strip().lower()
+        if theme not in ('dark', 'light'):
+            raise SystemExit(f"--theme takes dark or light, not {theme!r}")
+    return rest, theme
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     import os
 
@@ -108,6 +132,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     check_qt_binding()      # before a window is built out of the mismatch
 
+    from ..theme import OVERRIDE as THEME_OVERRIDE
     from .main_window import MainWindow
 
     # let Ctrl-C in the launching terminal kill the GUI immediately instead
@@ -121,6 +146,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     # its own and is not a file to import
     with_disclaimer = '--no-disclaimer' not in argv
     argv = [a for a in argv if a != '--no-disclaimer']
+    # --theme dark|light: said into the environment, which is the one
+    # place the theme module looks first, so the window and every
+    # later `apply_theme` agree (2026-09-14)
+    argv, theme = theme_flag(argv)
+    if theme is not None:
+        os.environ[THEME_OVERRIDE] = theme
     # what the machine calls this while it is running — and it must be
     # said *before* the QApplication exists. Cocoa's application menu
     # ('Hide …', 'Quit …') is built during construction, titled from
