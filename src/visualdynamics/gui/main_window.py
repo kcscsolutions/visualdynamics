@@ -134,7 +134,7 @@ from ..rotate import (
     rotate_frame,
     wrapped,
 )
-from ..theme import OVERLAY_ALPHA, system_scheme
+from ..theme import OVERLAY_ALPHA
 from ..theme import theme as resolve_theme
 from ..units import DEFAULT_SYSTEM, SYSTEMS, UnitSystem
 from ..viz.geometry import (
@@ -177,6 +177,11 @@ from .object_tables import (
     units_table_model,
 )
 from .panes import DataPane, ScenePane
+from .preferences import (
+    chosen_scheme,
+    remember_appearance,
+    remembered_appearance,
+)
 from .project_tree import (
     PROJECT_ROW,
     ROLE_ACTIVE,
@@ -649,8 +654,9 @@ class MainWindow(QMainWindow):
         check_qt_binding()   # a mismatch is unreadable once it reaches a layout
         import pyqtgraph as pg
 
-        # follow the OS light/dark setting for the parts we draw ourselves
-        self.theme_name: str = system_scheme()
+        # the appearance chosen for this launch, remembered, or the
+        # platform's — in that order (gui/preferences.py)
+        self.theme_name: str = chosen_scheme()
         colors = resolve_theme(self.theme_name)
         pg.setConfigOption('background', colors['plot_background'])
         pg.setConfigOption('foreground', colors['plot_foreground'])
@@ -1343,6 +1349,25 @@ class MainWindow(QMainWindow):
         report_menu.addAction('&Empty',
                               lambda: self.generate_report('empty'))
         file_menu.addSeparator()
+        # light, dark, or the platform's choice, remembered between
+        # launches: a Linux desktop Qt could not read left a friend of
+        # Brandon's with a light window and no way to change it
+        # (2026-09-14). One menu, still — File stays the only one.
+        appearance = file_menu.addMenu('&Appearance')
+        group = QActionGroup(self)
+        group.setExclusive(True)
+        self.appearance_actions: dict[str, QAction] = {}
+        remembered = remembered_appearance()
+        for choice, label in (('system', '&System'), ('light', '&Light'),
+                              ('dark', '&Dark')):
+            action = appearance.addAction(label)
+            action.setCheckable(True)
+            action.setChecked(choice == remembered)
+            action.triggered.connect(
+                lambda _checked=False, choice=choice:
+                self.choose_appearance(choice))
+            group.addAction(action)
+            self.appearance_actions[choice] = action
         file_menu.addAction('Check for &Updates...', self.check_for_updates)
         # the About role: macOS moves it into the application menu,
         # where a Mac user looks for a version; Windows and Linux keep
@@ -2096,14 +2121,27 @@ class MainWindow(QMainWindow):
         self.dofs_combo_action.setVisible(bool(quantities))
 
     def _scheme_changed(self, _scheme) -> None:
-        """The platform switched light and dark: restate the theme."""
+        """The platform switched light and dark: restate the theme —
+        which follows it only while the appearance is System."""
         self.apply_theme()
 
+    def choose_appearance(self, choice: str) -> None:
+        """File → Appearance: remember the choice and wear it now.
+        'system' means follow the platform again."""
+        remember_appearance(choice)
+        for name, action in self.appearance_actions.items():
+            action.setChecked(name == choice)
+        self.apply_theme()
+        self._show_status(
+            'Following the system appearance' if choice == 'system'
+            else f'{choice.capitalize()} appearance, remembered')
+
     def apply_theme(self, name: str | None = None) -> None:
-        """Adopt a light/dark theme (default: whatever the OS is set to)."""
+        """Adopt a light/dark theme (default: the one chosen — this
+        launch's flag, the remembered appearance, or the OS)."""
         import pyqtgraph as pg
 
-        self.theme_name = name or system_scheme()
+        self.theme_name = name or chosen_scheme()
         colors = resolve_theme(self.theme_name)
         _keep_selection_vivid(self.table)
         pg.setConfigOption('foreground', colors['plot_foreground'])

@@ -55,6 +55,13 @@ example projects, one per workflow — the plate the guide's screenshots
 come from, and the quadcopter at the size of a real test article.
 Unzip, then File → Open.
 
+The window follows the platform's light or dark appearance. Where
+the platform does not say (a Linux desktop Qt cannot read, or a
+preference of your own), **File → Appearance** chooses Light, Dark or
+System, and the choice is remembered; `--theme dark` on the command
+line, or `VISUALDYNAMICS_THEME=dark` in the environment, says it for
+one launch.
+
 Every launch of this alpha opens with a disclaimer to acknowledge —
 the software is offered as is, its numbers are the user's to check —
 and **File → About Visual Dynamics…** shows the version, readable

@@ -141,6 +141,15 @@ def qt_app():
     QApplication.setAttribute(
         Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication.instance() or QApplication([])
+    # the preferences the window remembers (File → Appearance) go to a
+    # folder of the session's own, never the user's real store
+    import tempfile
+
+    from PySide6.QtCore import QSettings
+    store = tempfile.mkdtemp(prefix='visualdynamics-settings-')
+    QSettings.setDefaultFormat(QSettings.Format.IniFormat)
+    QSettings.setPath(QSettings.Format.IniFormat,
+                      QSettings.Scope.UserScope, store)
     yield app
     app.processEvents()
 
