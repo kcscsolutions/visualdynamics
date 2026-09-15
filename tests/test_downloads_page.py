@@ -182,3 +182,22 @@ def test_the_staging_parser_agrees_with_the_update_check():
     for text in ('0.1.0', '0.1.0a1', '0.2.0b3', '1.0.0rc1', '0.10.2'):
         assert version_of(f'VisualDynamics-{text}-macos-arm64.dmg') == \
             parse_version(text), text
+
+
+def test_ci_runs_on_every_push_to_main_and_both_pythons():
+    """The repository is public and its runners are free (2026-09-14),
+    so the suite runs on every push to main, on pull requests and on
+    demand, on both Pythons the package promises — and on no schedule,
+    which a run with nothing new to test would only waste."""
+    import yaml
+
+    root = os.path.join(os.path.dirname(__file__), '..')
+    with open(os.path.join(root, '.github', 'workflows', 'ci.yml'),
+              encoding='utf-8') as handle:
+        workflow = yaml.safe_load(handle)
+    on = workflow[True]
+    assert on['push'] == {'branches': ['main']}
+    assert 'pull_request' in on and 'workflow_dispatch' in on
+    assert 'schedule' not in on
+    matrix = workflow['jobs']['test']['strategy']['matrix']
+    assert matrix['python-version'] == ['3.12', '3.13']
