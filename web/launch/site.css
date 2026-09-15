@@ -89,6 +89,11 @@ h3 { font-size: 1.05rem; margin: 2em 0 .4em; }
 @media (max-width: 52rem) {
   .downloads { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* two example sets, side by side and wide: the row-of-four tile shape
+   would squeeze "six projects · modal, random, ..." into a column */
+.downloads.examples { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.downloads.examples .dl { flex-direction: row; text-align: left;
+                          gap: .9rem; padding: 1.1rem 1.2rem; }
 @media (max-width: 30rem) {
   .downloads { grid-template-columns: 1fr; }
 }

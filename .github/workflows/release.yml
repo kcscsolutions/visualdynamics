@@ -175,7 +175,11 @@ jobs:
   # Pages: Edit on this account, nothing more) and CLOUDFLARE_ACCOUNT_ID.
   # web/README.md walks through making them.
   site:
-    if: github.event_name == 'release'
+    # a *version's* release only: the examples release (tag `examples`,
+    # 2026-09-14) fired both these jobs, and the site went out with
+    # latest.json saying version "examples" until it was redeployed by
+    # hand
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -276,7 +280,11 @@ jobs:
           packages-dir: placeholder/dist
 
   pypi:
-    if: github.event_name == 'release'
+    # a *version's* release only: the examples release (tag `examples`,
+    # 2026-09-14) fired both these jobs, and the site went out with
+    # latest.json saying version "examples" until it was redeployed by
+    # hand
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment: pypi

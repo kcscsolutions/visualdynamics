@@ -49,6 +49,12 @@ visualdynamics-gui modal_run.nc4    # opening files on the way in
 A compiled package opens like any other application; the commands
 above are for the Python install.
 
+Something to open on the first day: the [downloads
+page](https://visualdynamics.org/downloads#examples) links two sets of
+example projects, one per workflow — the plate the guide's screenshots
+come from, and the quadcopter at the size of a real test article.
+Unzip, then File → Open.
+
 Every launch of this alpha opens with a disclaimer to acknowledge —
 the software is offered as is, its numbers are the user's to check —
 and **File → About Visual Dynamics…** shows the version, readable

@@ -54,3 +54,6 @@ web/launch/documentation/
 # an account id and a personal address are not repository content.
 # Untracked 2026-08-25; the deploy re-creates it whenever it runs.
 .wrangler/
+# the update manifest: written from the release by the site job, and
+# by hand for a redeploy — never a checked-in claim about what is out
+web/launch/latest.json

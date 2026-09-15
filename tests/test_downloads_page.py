@@ -73,7 +73,9 @@ def test_the_site_job_deploys_the_directory_the_docs_build_into():
         docs = yaml.safe_load(handle)
     assert workflow[True]['release'] == {'types': ['published']}
     site = workflow['jobs']['site']
-    assert site['if'] == "github.event_name == 'release'"
+    assert site['if'] == ("github.event_name == 'release' && "
+                          "startsWith(github.event.release.tag_name, 'v')"), \
+        'the site job runs for a version release only (2026-09-14)'
     deploy = [step for step in site['steps'] if 'wrangler' in step.get('run', '')]
     assert len(deploy) == 1
     # the step runs inside the site directory and deploys '.', so that
@@ -136,7 +138,9 @@ def test_the_pypi_jobs_publish_by_identity_and_only_when_meant():
         publish = [s for s in job['steps'] if 'pypi-publish' in s.get('uses', '')]
         assert len(publish) == 1
         assert not any('password' in s.get('with', {}) for s in job['steps'])
-    assert jobs['pypi']['if'] == "github.event_name == 'release'"
+    assert jobs['pypi']['if'] == ("github.event_name == 'release' && "
+                                  "startsWith(github.event.release.tag_name, 'v')"), \
+        'PyPI publishes for a version release only (2026-09-14)'
     assert 'inputs.reserve' in jobs['reserve']['if']
     for name in ('linux', 'windows'):
         assert '!inputs.reserve' in jobs[name]['if'], (

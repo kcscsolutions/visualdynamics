@@ -156,6 +156,26 @@ def test_the_navigation_wraps_on_a_phone():
         'a URL in inline code must break rather than widen the page'
 
 
+def test_the_downloads_page_links_every_example_set_the_tool_cuts():
+    """The example projects are a release of their own, cut and
+    uploaded by tools/cut_examples.py, and the downloads page links
+    them (Brandon, 2026-09-14: examples on the website, the package
+    kept small). One source for the asset names, so a set added or
+    renamed in the tool cannot leave the page pointing at nothing."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        'cut_examples', ROOT_DIR / 'tools' / 'cut_examples.py')
+    tool = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(tool)
+    html = (LAUNCH / 'downloads.html').read_text(encoding='utf-8')
+    for name in tool.SETS:
+        assert tool.URL + name in html, f'the page does not link {name}'
+    linked = set(re.findall(re.escape(tool.URL) + r'([^"]+)', html))
+    assert linked == set(tool.SETS), 'the page links a set the tool does not cut'
+    assert 'synthetic' in html, 'the page says the runs are synthetic'
+
+
 # ---- the feature-requests page ---------------------------------------------
 
 IDEAS = 'https://github.com/visualdynamics/visualdynamics/discussions/categories/ideas'
