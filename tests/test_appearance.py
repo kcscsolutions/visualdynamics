@@ -97,3 +97,73 @@ def test_the_tests_never_touch_the_real_store():
 
     assert preferences.settings().fileName().startswith(SETTINGS_STORE), \
         preferences.settings().fileName()
+
+
+def test_the_whole_application_wears_the_choice(window, pump, monkeypatch):
+    """The first cut changed the plots and the scene and left the
+    window chrome as the OS had it: Brandon chose Light and saw nothing
+    change (2026-09-14). The choice goes to the application's style
+    hints (`QStyleHints.setColorScheme`, Qt 6.8+), which every native
+    widget follows; System hands the decision back to the platform.
+    The offscreen platform the tests run on ignores the request, so
+    the call is what is pinned here — the effect was watched on macOS:
+    the widget palette's window colour went from lightness 50 to 236
+    and back."""
+    from visualdynamics.gui import main_window
+
+    worn = []
+    monkeypatch.setattr(main_window, 'wear_appearance',
+                        lambda app=None, choice=None: worn.append(choice))
+    actions = _appearance_actions(window)
+    actions['&Light'].trigger()
+    pump()
+    actions['&Dark'].trigger()
+    pump()
+    actions['&System'].trigger()
+    pump()
+    assert worn == ['light', 'dark', 'system']
+    assert window.theme_name in ('light', 'dark')
+
+
+def test_a_fresh_window_wears_the_remembered_choice_first(window_factory,
+                                                         monkeypatch):
+    """Worn before the panes are built, so chrome and drawn parts start
+    on the same scheme."""
+    from visualdynamics.gui import main_window
+
+    worn = []
+    monkeypatch.setattr(main_window, 'wear_appearance',
+                        lambda app=None, choice=None: worn.append('called'))
+    preferences.remember_appearance('light')
+    later = window_factory()
+    assert worn == ['called']
+    assert later.theme_name == 'light'
+
+
+def test_wear_appearance_maps_the_choice_onto_qt(qt_app):
+    """The mapping itself: a recorder in place of the hints."""
+    from PySide6.QtCore import Qt
+
+    class Hints:
+        def __init__(self):
+            self.set = []
+
+        def setColorScheme(self, scheme):
+            self.set.append(scheme)
+
+    class App:
+        def __init__(self):
+            self.hints = Hints()
+
+        def styleHints(self):
+            return self.hints
+
+    app = App()
+    preferences.wear_appearance(app, 'light')
+    preferences.wear_appearance(app, 'dark')
+    preferences.wear_appearance(app, 'system')
+    assert app.hints.set == [Qt.ColorScheme.Light, Qt.ColorScheme.Dark,
+                             Qt.ColorScheme.Unknown]
+    preferences.remember_appearance('dark')
+    preferences.wear_appearance(app)          # the default: what is chosen
+    assert app.hints.set[-1] == Qt.ColorScheme.Dark

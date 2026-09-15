@@ -17,6 +17,7 @@ choice, and the remembered choice beats what the platform reports —
 from __future__ import annotations
 
 import os
+from typing import Any
 
 from PySide6.QtCore import QSettings
 
@@ -72,3 +73,36 @@ def chosen_scheme() -> str:
     if remembered in THEMES:
         return remembered
     return system_scheme()
+
+
+def wear_appearance(app: Any = None, choice: str | None = None) -> None:
+    """Make the whole application wear the chosen appearance — the
+    window chrome, the menus, every native widget — not only the parts
+    this program draws itself.
+
+    Qt 6.8 gave `QStyleHints.setColorScheme`: Light or Dark forces the
+    application's appearance (on macOS, the NSApp appearance), Unknown
+    follows the platform again. Without it the first cut of the menu
+    changed the plots and the scene and left the chrome as the OS had
+    it, and Brandon chose Light and saw nothing change (2026-09-14).
+    The platform then reports the forced scheme, which is what
+    `theme.system_scheme` and the `colorSchemeChanged` slot read, so
+    every later repaint agrees. `choice` defaults to what
+    `chosen_scheme` would answer: this launch's statement, else the
+    remembered choice, else the platform's.
+    """
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    app = app or QApplication.instance()
+    if app is None:
+        return
+    hints = app.styleHints()
+    if not hasattr(hints, 'setColorScheme'):
+        return                      # an older Qt: the drawn parts only
+    if choice is None:
+        said = os.environ.get(OVERRIDE, '').strip().lower()
+        choice = said if said in THEMES else remembered_appearance()
+    hints.setColorScheme({'light': Qt.ColorScheme.Light,
+                          'dark': Qt.ColorScheme.Dark}.get(
+                              choice, Qt.ColorScheme.Unknown))

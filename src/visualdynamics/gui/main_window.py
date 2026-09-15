@@ -181,6 +181,7 @@ from .preferences import (
     chosen_scheme,
     remember_appearance,
     remembered_appearance,
+    wear_appearance,
 )
 from .project_tree import (
     PROJECT_ROW,
@@ -655,7 +656,10 @@ class MainWindow(QMainWindow):
         import pyqtgraph as pg
 
         # the appearance chosen for this launch, remembered, or the
-        # platform's — in that order (gui/preferences.py)
+        # platform's — in that order (gui/preferences.py) — worn by the
+        # whole application first, so the chrome and the drawn parts
+        # are built to the same scheme
+        wear_appearance()
         self.theme_name: str = chosen_scheme()
         colors = resolve_theme(self.theme_name)
         pg.setConfigOption('background', colors['plot_background'])
@@ -2131,6 +2135,10 @@ class MainWindow(QMainWindow):
         remember_appearance(choice)
         for name, action in self.appearance_actions.items():
             action.setChecked(name == choice)
+        # the application first — chrome, menus, native widgets — then
+        # the parts drawn here; Qt announces the switch through
+        # colorSchemeChanged too, which lands on apply_theme as well
+        wear_appearance(choice=choice)
         self.apply_theme()
         self._show_status(
             'Following the system appearance' if choice == 'system'
