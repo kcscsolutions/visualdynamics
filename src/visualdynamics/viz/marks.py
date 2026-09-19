@@ -609,7 +609,7 @@ def add_decade_axis(plotter: Any, extents: Sequence[float],
     axes = getattr(plotter.renderer, 'cube_axes_actor', None)
     if axes is not None:
         axes.x_label_visibility = False
-        axes.x_axis_tick_visibility = False
+        axes.XAxisTickVisibilityOff()
         axes.x_axis_minor_tick_visibility = False
         axes.SetDrawXGridlines(False)
     decades = decade_labels(x0, x1)
