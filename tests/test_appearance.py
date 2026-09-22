@@ -93,10 +93,17 @@ def test_the_tests_never_touch_the_real_store():
     """The store the tests write is the session's own folder, set at
     conftest import — a fixture-scoped redirect left one test writing
     into the real preferences file (2026-09-14)."""
+    from pathlib import Path
+
     from conftest import SETTINGS_STORE
 
-    assert preferences.settings().fileName().startswith(SETTINGS_STORE), \
-        preferences.settings().fileName()
+    # Qt returns this path with forward slashes on every platform, while
+    # `SETTINGS_STORE` came from tempfile and carries the platform's own
+    # separator. Comparing the two as strings passed on POSIX and failed
+    # on Windows for the separator alone, which read as the store being
+    # wrong rather than the comparison (Kevin Cross, 2026-09-21).
+    written = Path(preferences.settings().fileName())
+    assert written.is_relative_to(SETTINGS_STORE), written
 
 
 def test_the_whole_application_wears_the_choice(window, pump, monkeypatch):

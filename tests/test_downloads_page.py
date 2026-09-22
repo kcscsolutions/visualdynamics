@@ -62,6 +62,7 @@ def test_the_site_job_deploys_the_directory_the_docs_build_into():
     still a draft must not put a manifest in front of the update
     check that names assets nobody can download yet."""
     import os
+    import posixpath
 
     import yaml
 
@@ -85,8 +86,13 @@ def test_the_site_job_deploys_the_directory_the_docs_build_into():
     # wrangler finds ./functions where it runs (2026-09-14) — the
     # directory it deploys is the two joined
     target = deploy[0]['run'].split('pages deploy ')[1].split()[0]
-    deployed = os.path.normpath(
-        os.path.join(deploy[0].get('working-directory', '.'), target))
+    # posixpath, not os.path: both halves come out of YAML written with
+    # forward slashes, and the comparison below is against `site_dir`,
+    # which is also YAML. On Windows os.path.join would hand back
+    # `web\launch` and the test would fail on the separator rather than
+    # on anything about the workflow (Kevin Cross, 2026-09-21).
+    deployed = posixpath.normpath(
+        posixpath.join(deploy[0].get('working-directory', '.'), target))
     assert docs['site_dir'].startswith(deployed + '/'), (
         f'mkdocs builds into {docs["site_dir"]}, the job deploys {deployed}')
     manifest = [step for step in site['steps'] if 'latest.json' in step.get('run', '')]
