@@ -54,8 +54,8 @@ if TYPE_CHECKING:
     from .amplitude_spectrum import AmplitudeSpectrum
     from .averaging import Averaging, ConfidenceBand
     from .half_power import HalfPower
-    from .rms_check import RmsCheck
     from .partial_coherence import PartialCoherence
+    from .rms_check import RmsCheck
     from .time_statistics import TimeStatistics
     from .tone_readout import ToneReading
     from .transmissibility import TransmissibilityReading
