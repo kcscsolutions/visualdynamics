@@ -297,6 +297,8 @@ def test_the_inventory_covers_what_the_window_renders():
         '_render_replication_fit': 'plot_replication_fit',
         '_render_stroke': 'plot_stroke',
         '_render_resample': 'plot_resample',
+        '_render_partial_coherence': 'plot_partial_coherence',
+        '_render_transformation': 'plot_transformation_residual',
         '_render_wavelet': ('plot_scalogram / '
                             'viz.scalogram.plot_scalogram_stage'),
         '_render_pulse': 'plot_pulse_check',
