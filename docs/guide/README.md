@@ -103,7 +103,8 @@ that is not an alpha.
   every pairing of PSD and specification, and the edge cases
 - [Reports](reports.md): symbolic bindings, live text, and one file out
 - [Report features](report-features.md): optional additions to a
-  report, turned on in a panel or by preset, and the plot conventions
+  report, turned on in a panel or by preset: the skeleton sections
+  and the plot conventions
 
 For signatures, see the API reference in the site navigation. For the
 layers of the package and the conventions behind them, see
