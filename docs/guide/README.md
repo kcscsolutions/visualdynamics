@@ -91,6 +91,11 @@ that is not an alpha.
 - [Checking a sine tone's frequency](sine-frequency.md): the tone's own
   frequency on the record against the specification's, along the
   sweep, against a band
+- [Which drive explains a response](partial-coherence.md): partial,
+  reference and virtual coherence of a test with several drives
+- [The transformation to a point, and where the rigid body
+  holds](transformation.md): the matrix from channels to six motions,
+  its conditioning, and the residual it leaves against frequency
 - [The system identification workflow](workflows/sysid-workflow.md):
   measuring a plant, and how well it was measured
 - [The finite element workflow: the BARC](workflows/fem-workflow.md):
