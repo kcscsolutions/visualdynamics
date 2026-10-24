@@ -1007,6 +1007,59 @@ def comparison_chance():
         print(f'combine {combine}: {describe_chance(result, "warning")}')
     plot_chance(psd, spec, combine=8, scale_db=0, show=False,
                 path=str(OUT / 'comparison-chance.png'))
+def matrix_comparison():
+    """A three-channel random run judged as a matrix: every level in
+    its band and every coherence held, and the third channel's phase
+    to the first walking 40 degrees off above 800 Hz, which takes its
+    phase to the second with it."""
+    import dataclasses
+
+    import numpy as np
+
+    from visualdynamics.core.author import SpecificationDraft
+    from visualdynamics.core.averaging import Averaging
+    from visualdynamics.core.data import TimeHistory
+    from visualdynamics.core.matrix_comparison import compare_matrix
+    from visualdynamics.plot import plot_matrix_comparison
+
+    n, fs = 2 ** 18, 4096.0
+    rng = np.random.default_rng(2207)
+    f = np.fft.rfftfreq(n, 1.0 / fs)
+    band = (f >= 20.0) & (f <= 2000.0)
+
+    def noise():
+        z = np.fft.rfft(rng.standard_normal(n))
+        z[~band] = 0.0
+        return z * np.sqrt(1980.0) / np.std(np.fft.irfft(z, n))
+
+    z1, z2, z3 = noise(), noise(), noise()
+    walk = -45.0 - 40.0 * np.clip((f - 800.0) / 1200.0, 0.0, 1.0)
+    x2 = (np.sqrt(0.9) * np.exp(1j * np.radians(30.0)) * z1
+          + np.sqrt(0.1) * z2)
+    x3 = (np.sqrt(0.7) * np.exp(1j * np.radians(walk)) * z1
+          + np.sqrt(0.3) * z3)
+    history = TimeHistory(
+        np.arange(n) / fs, np.vstack([np.fft.irfft(z, n)
+                                      for z in (z1, x2, x3)]),
+        response_dof=['101X+', '102X+', '103X+'],
+        ordinate_dim=['acceleration'] * 3, ordinate_unit=['m/s**2'] * 3)
+    history.averaging = Averaging(frame_length=4096, overlap=0.5,
+                                  window='hann').filled(n, fs)
+    cpsd = history.compute_cpsds()
+    # the pair 102X+/103X+ follows from the other two: coherence
+    # 0.9 x 0.7 and phase -45 - 30
+    draft = SpecificationDraft.at_dofs(['101X+', '102X+', '103X+'],
+                                       'acceleration')
+    specification = dataclasses.replace(
+        draft, pairs={(0, 1): (0.9, 30.0), (0, 2): (0.7, -45.0),
+                      (1, 2): (0.63, -75.0)}).make()
+    plot_matrix_comparison(specification, cpsd, scale_db=0, show=False,
+                           size=(1500, 900),
+                           path=str(OUT / 'matrix-comparison.png'))
+    result = compare_matrix(specification, cpsd, scale_db=0)
+    for row in result.table():
+        print(f'{row["label"]:>12} {row["reading"]:>9}: {row["words"]}')
+    print(result.describe())
 
 
 def plot_composition():
@@ -1112,6 +1165,9 @@ def rms_check():
                        size=(1000, 600), path=str(OUT / name))
         check = spectrum_.rms_check(history, averaging=averaging)
         print(f'rms check: {check.describe("g", 1.0 / g)}')
+
+
+
 
 
 def sine_profile():
@@ -1235,6 +1291,7 @@ def main():
     sine_profile()
     sine_frequency()
     resample()
+    matrix_comparison()
     print('done')
 
 

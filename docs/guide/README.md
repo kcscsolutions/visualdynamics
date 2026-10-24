@@ -91,6 +91,9 @@ that is not an alpha.
 - [Checking a sine tone's frequency](sine-frequency.md): the tone's own
   frequency on the record against the specification's, along the
   sweep, against a band
+- [Judging a cross-spectral matrix against its
+  specification](matrix-comparison.md): the levels on the diagonal and
+  each cross term's coherence and phase, as a grid
 - [The system identification workflow](workflows/sysid-workflow.md):
   measuring a plant, and how well it was measured
 - [The finite element workflow: the BARC](workflows/fem-workflow.md):

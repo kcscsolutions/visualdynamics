@@ -162,6 +162,11 @@ draws a sine profile, or a specification's tone read as one, three
 ways with its crossovers marked, the reading the Sine Profile toggle on
 a sine specification's bar shows ([Writing a sine profile in
 segments](sine-profile.md)).
+`plot_matrix_comparison(specification, cpsd)` draws a run's
+cross-spectral matrix against its specification as a grid, the levels
+on the diagonal, the coherence above and the phase below, each cell
+with its verdict, the reading the Matrix toggle shows ([Judging a
+cross-spectral matrix](matrix-comparison.md)).
 The 3-D forms are in
 `visualdynamics.viz`: `scalogram.plot_scalogram_stage(history)` is the
 surface the wavelet reading opens in, and
