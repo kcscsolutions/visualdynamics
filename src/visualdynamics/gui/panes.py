@@ -431,9 +431,11 @@ class DataPane(QWidget):
         # read beside the spectrum; nothing to apply
         self.rms_check_panel: RmsCheckPanel = RmsCheckPanel()
         self.rms_check_panel.hide()
-        self.partial_coherence_panel: PartialCoherencePanel =             PartialCoherencePanel()
+        self.partial_coherence_panel: PartialCoherencePanel = \
+            PartialCoherencePanel()
         self.partial_coherence_panel.hide()
-        self.transformation_panel: TransformationPanel =             TransformationPanel()
+        self.transformation_panel: TransformationPanel = \
+            TransformationPanel()
         self.transformation_panel.hide()
         # the modes a sine sweep is checked against, beside the sweep
         # drawn through their bands; the Sweep Rate reading shows it
