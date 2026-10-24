@@ -35,6 +35,9 @@ that is not an alpha.
 - [Writing a random specification by slope](breakpoint-slopes.md): a
   level, a slope in dB per octave and the next frequency, each
   segment's area and the running rms
+- [Judging a multi-point control run](multi-point.md): the composite
+  of several control channels against its band, and each channel
+  against its own
 - [Reading a record's time statistics](time-statistics.md): the
   moments, the rail, the tails against the Gaussian, the expected
   largest peak and the kurtosis frame by frame
