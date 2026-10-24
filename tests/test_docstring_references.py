@@ -81,6 +81,8 @@ THEORY = {
                            'band it is judged against',
     'core.resample': 'decimation behind an anti-alias filter, and where '
                      'content above the Nyquist frequency folds',
+    'core.partial_coherence': 'the conditioned spectra, the partial and '
+                              'the multiple coherence',
 }
 
 #: and methods, where the theory lives on the call rather than the module
